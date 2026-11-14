@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Confidentialité · Le vrai Ballon d'Or</title>
+<meta name="description" content="Ce que le vote du public du vrai Ballon d'Or garde comme données, et pourquoi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root { --fond: #f6f4ef; --encre: #141412; --doux: #6b6862; --trait: #dcd8cf; --or: #a87a1f; --serif: 'Instrument Serif', Georgia, serif; --sans: 'Geist', system-ui, sans-serif; }
+@media (prefers-color-scheme: dark) { :root { --fond: #121210; --encre: #ece9e2; --doux: #8f8b83; --trait: #2c2b27; --or: #d4a64a; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fond); color: var(--encre); font: 16px/1.6 var(--sans); }
+.page { max-width: 720px; margin: 0 auto; padding: 40px 24px 96px; }
+.sur { font: 500 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); }
+h1 { font: 400 clamp(40px, 8vw, 72px)/.95 var(--serif); margin: 24px 0 8px; }
+h2 { font: 400 26px/1.2 var(--serif); margin: 40px 0 8px; border-top: 1px solid var(--trait); padding-top: 20px; }
+p, li { color: var(--encre); }
+.doux { color: var(--doux); font-size: 14px; }
+a { color: var(--or); }
+</style>
+</head>
+<body>
+<div class="page">
+  <a class="sur" href="./">← Le vrai Ballon d'Or</a>
+  <h1>Confidentialité</h1>
+  <p class="doux">Dernière mise à jour : 9 novembre 2026.</p>
+
+  <p>Le vrai Ballon d'Or est un projet personnel, sans publicité ni but commercial. Le site se consulte sans compte ni cookie de suivi. Seul le <b>vote du public</b> demande de se connecter, pour qu'une personne ne vote qu'une fois.</p>
+
+  <h2>Ce qui est gardé</h2>
+  <ul>
+    <li><b>Ton compte de connexion</b> : quand tu te connectes avec Google ou par un lien envoyé par e-mail, le service Supabase crée un compte avec ton adresse e-mail et un identifiant anonyme. Avec Google, seuls ton nom, ton adresse e-mail et ta photo de profil sont transmis ; aucun autre accès à ton compte Google n'est demandé.</li>
+    <li><b>Ton vote</b> : l'identifiant anonyme de ton compte, le joueur choisi, la saison et la date du vote. Ton adresse e-mail n'est pas enregistrée avec ton vote.</li>
+  </ul>
+
+  <h2>À quoi ça sert</h2>
+  <p>Uniquement à compter les votes : un vote par personne et par saison, modifiable jusqu'à la clôture (la veille de la cérémonie du Ballon d'Or). Seul le <b>total des votes par joueur</b> est publié ; personne ne peut voir qui a voté pour qui.</p>
+
+  <h2>Qui y a accès</h2>
+  <p>Les données sont hébergées par <a href="https://supabase.com/privacy">Supabase</a>, sur des serveurs situés dans l'Union européenne. Elles ne sont ni vendues, ni partagées, ni utilisées pour de la publicité. Seul l'auteur du site peut consulter la base, pour la maintenance.</p>
+
+  <h2>Combien de temps</h2>
+  <p>Les votes servent au classement de la saison et sont conservés avec lui. Ton compte reste actif tant que tu ne demandes pas sa suppression.</p>
+
+  <h2>Tes droits</h2>
+  <p>Une fois connecté, tu vois ton vote dans la section « Vote du public » et tu peux le changer jusqu'à la clôture. Le lien <b>« Supprimer mon compte et mon vote »</b>, juste en dessous, efface immédiatement et définitivement ton compte et ton vote, sans avoir à le demander à personne. Tu peux également adresser une réclamation à la <a href="https://www.cnil.fr/">CNIL</a>.</p>
+</div>
+</body>
+</html>
