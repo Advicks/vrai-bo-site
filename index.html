@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FuoriClass27</title>
+<meta name="description" content="Classement en temps réel du meilleur joueur de la saison, selon un barème.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=League+Gothic&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Version « sport » : bleu électrique et rose vif ; textes et titres en Archivo (titres très gras, en minuscules), tous les chiffres en Geist Mono (--chiffres), la police à chasse fixe du site d'origine ; les logos sont des dessins (SVG fournis par Vicken), pas du texte (--serif garde son nom, c'est la police des titres) */
+  --fond: #f3f4f7; --encre: #0a0c24; --doux: #575b76; --trait: #d6d9e2; --surface: #e6e8ee;
+  --or: #2431ff; --actions: #0a0c24; --trophees: #2431ff; --distinctions: #ff70a2;
+  --serif: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; --sans: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; --chiffres: var(--mono); --mono: 'Geist Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fond: #0a0c24; --encre: #f7f4ea; --doux: #a3a6c4; --trait: #23264a; --surface: #121538;
+    --or: #ff70a2; --actions: #f7f4ea; --trophees: #ff70a2; --distinctions: #7d8bff; } /* thème sombre : bleu clair, pour rester distinct du rose des trophées */
+}
+* { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; } /* une rubrique cachée le reste, même si sa classe fixe un affichage */
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+section[id] { scroll-margin-top: 56px; }
+section.manifeste[id] { scroll-margin-top: 0; } /* le manifeste remplit tout l'écran sous la barre */
+body { background: var(--fond); color: var(--encre); font: 15px/1.5 var(--sans); overflow-x: clip; }
+.page { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
+.sur { font: 500 11px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Barre de navigation : fixe en haut, transparente sur l'accueil, pleine ensuite */
+/* barre : specs Figma « Accueil 2 » (56 px de haut, marges 88 px, logo et liens calés en bas) */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 20; height: 56px; padding: 0 clamp(24px, 6.11vw, 88px); display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  color: var(--clair); transition: background .3s, color .3s, box-shadow .3s; } /* filet sous la barre en ombre, pour ne pas manger 1 px des 56 */
+.nav.flou { background: color-mix(in srgb, #0a0c24 84%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); } /* quitte l'accueil : flou + teinte de la section en dessous (nuit sur le manifeste) */
+.nav.solide { color: var(--encre); background: color-mix(in srgb, var(--fond) 84%, transparent); box-shadow: 0 1px 0 var(--trait); } /* au-dessus d'un fond clair : texte foncé */
+.nav a { color: inherit; text-decoration: none; }
+.nav a:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.nav .marque { display: flex; align-items: center; height: 31px; line-height: 0; } /* Figma : emplacement 31 px, logo 18 px centré */
+.nav .marque svg { display: block; height: 18px; width: auto; }
+.marque .mot, h1 .mot { fill: currentColor; } .marque .an, h1 .an { fill: var(--or-nuit); }
+.nav.solide .marque .an { fill: var(--or); }
+.nav .liens { display: flex; gap: 40px; /* Figma : 40 px entre les capsules, soit 14 + 40 + 14 = 68 px entre deux mots */ min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav .liens::-webkit-scrollbar { display: none; }
+.nav .liens a { font: 300 12px/13px var(--sans); letter-spacing: 0; text-transform: uppercase; padding: 9px 14px; border-radius: 99px; white-space: nowrap; opacity: .7; transition: opacity .2s, box-shadow .2s; }
+/* survol : chaque lettre sort par la droite de sa fenêtre pendant que sa copie entre par la gauche (référence : maxmilkin.com, mesurée :
+   déplacement fixe de 1,77em quelle que soit la lettre, aller 0,75 s qui ralentit en fin de course, retour 0,15 s plus tard, 0,75 s qui accélère) */
+/* Light au repos, Medium au survol : c'est la copie qui arrive en Medium ; les deux sont empilées dans la même case, qui prend la largeur du Medium (pas de saut de mise en page) */
+.nav .liens .lettre { display: inline-grid; overflow-x: clip; overflow-y: visible; vertical-align: top; }
+.nav .liens .lettre > span { grid-area: 1 / 1; }
+.nav .liens .lettre > span { display: block; transition: transform .75s cubic-bezier(.55, .055, .675, .19) .15s; }
+.nav .liens .lettre > span + span { font-weight: 500; transform: translateX(-1.77em); }
+@media (hover: hover) {
+  .nav .liens a:hover .lettre > span { transition: transform .75s cubic-bezier(.215, .61, .355, 1); }
+  .nav .liens a:hover .lettre > span:first-child { transform: translateX(1.77em); } .nav .liens a:hover .lettre > span + span { transform: none; }
+}
+.nav .liens a:focus-visible .lettre > span { transition: transform .75s cubic-bezier(.215, .61, .355, 1); }
+.nav .liens a:focus-visible .lettre > span:first-child { transform: translateX(1.77em); } .nav .liens a:focus-visible .lettre > span + span { transform: none; }
+@media (prefers-reduced-motion: reduce) { .nav .liens .lettre > span { transition: none; } }
+.nav .liens a:hover { opacity: 1; }
+.nav .liens a[aria-current="true"] { opacity: 1; box-shadow: inset 0 0 0 1px currentColor; }
+
+/* Accueil plein écran : vidéo en fond (facultative), sinon aplat bleu électrique. Toujours sombre, quel que soit le thème. */
+.hero { --clair: #f3f4f7; --or-nuit: #ff70a2; position: sticky; top: 0; z-index: 0; min-height: 100vh; min-height: 100svh; display: flex; overflow: hidden; background: #2431ff; color: var(--clair); }
+.nav { --clair: #f3f4f7; --or-nuit: #ff70a2; }
+.hero-video, .hero-voile { position: absolute; inset: 0; }
+.hero-video { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s; }
+.hero-video.prete { opacity: 1; }
+/* Voile noir par-dessus la vidéo seulement ; sans vidéo, l'accueil est un aplat bleu électrique, sans dégradé ni halo */
+.hero-video.prete + .hero-voile { background: linear-gradient(180deg, rgba(0, 0, 0, .4) 0%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .62) 100%); }
+.hero-contenu { position: relative; z-index: 1; width: 100%; padding: 96px 24px 36px; display: flex; flex-direction: column; justify-content: flex-end; }
+/* Logo de l'accueil : dessin SVG fourni par Vicken (15 nov.), lettres dans la couleur du texte, « 27 » dans la couleur d'accent */
+h1 { margin: 0; overflow: hidden; line-height: 0; }
+h1 svg { display: block; width: min(69%, max(814px, 52vw), 166vh); height: auto; } /* 814 px comme réglé par Vicken, 52 % de la largeur au-delà de 1 565 px d'écran, 69 % sur petit écran ; 166vh : jamais plus haut que 45 % de l'écran */
+.hero-bas { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px 48px; flex-wrap: wrap; margin-top: 36px; padding-top: 20px; border-top: 1px solid rgba(255, 253, 245, .4); }
+.hero .chapo { margin: 0; max-width: 26em; font-size: 17px; color: rgba(255, 253, 245, .88); }
+.hero-tete { display: grid; gap: 4px; text-align: right; color: inherit; text-decoration: none; }
+.hero-tete small { font: 500 12px var(--sans); color: rgba(255, 253, 245, .8); }
+.hero-tete b { font: 700 clamp(24px, 3vw, 40px)/1 var(--serif); letter-spacing: -.035em; }
+.hero-tete span { font: 700 15px/1 var(--serif); letter-spacing: -.01em; color: var(--or-nuit); }
+.hero-tete:hover b, .hero-tete:focus-visible b { font-style: italic; }
+.hero-tete:focus-visible { outline: 2px solid var(--or-nuit); outline-offset: 6px; }
+/* Une seule animation d'entrée : le titre monte ligne par ligne, puis le bas de l'accueil apparaît */
+@media (prefers-reduced-motion: no-preference) {
+  h1 svg { animation: monter 1s cubic-bezier(.2, .7, .1, 1) both; }
+  .hero-bas { animation: paraitre .9s ease-out .55s both; }
+}
+@keyframes monter { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes paraitre { from { opacity: 0; } to { opacity: 1; } }
+
+/* Accueil : il accompagne le manifeste qui le recouvre en remontant très légèrement (30 % de la hauteur de l'écran au total) */
+.hero > * { transform: translate3d(0, calc(var(--p, 0) * -30vh), 0); will-change: transform; }
+/* Manifeste : il glisse par-dessus l'accueil (resté en place), son texte s'épingle au centre, puis le classement vient le recouvrir */
+.manifeste { position: relative; z-index: 1; height: 180vh; background: #0a0c24; color: #f7f4ea; }
+.manifeste-fixe { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; align-content: center; justify-items: center; gap: 20px; padding: 0 24px; text-align: center; }
+.manifeste-tag { margin: 0; padding: 6px 10px; border-radius: 4px; background: rgba(247, 244, 234, .1); font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: rgba(247, 244, 234, .75); }
+.manifeste-texte { margin: 0; max-width: 20em; font: 500 clamp(24px, 3vw, 38px)/1.2 var(--sans); letter-spacing: -.025em; text-wrap: balance; }
+.suite { position: relative; z-index: 1; background: var(--fond); }
+@media (prefers-reduced-motion: reduce) { .hero { position: relative; } .manifeste { height: auto; } .manifeste-fixe { position: static; min-height: 100svh; } }
+
+/* Rubriques */
+.rubrique { padding-top: 104px; }
+.tete-rubrique { display: grid; gap: 14px; }
+.tete-rubrique h2, .principe h2 { font: 700 clamp(46px, 13.5vw, 148px)/.95 var(--serif); letter-spacing: -.045em; }
+.tete-rubrique .infos { display: flex; gap: 8px 24px; flex-wrap: wrap; }
+.principe .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 48px; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--encre); }
+.principe h3 { font: 700 24px/1 var(--serif); letter-spacing: -.03em; color: var(--or); margin-bottom: 10px; }
+.principe p { color: var(--doux); font-size: 16px; }
+.chapo { max-width: 34em; color: var(--doux); margin-top: 20px; font-size: 16px; }
+.bandeau { margin-top: 28px; padding: 12px 16px; border: 1px solid var(--trait); font-size: 13px; color: var(--doux); }
+.bandeau b { color: var(--encre); font-weight: 500; }
+.editions { margin-top: 28px; display: flex; gap: 8px 14px; align-items: baseline; flex-wrap: wrap; }
+.editions select { font: 16px var(--sans); color: var(--encre); background: transparent; border: 0; border-bottom: 1px solid var(--encre); padding: 6px 0; border-radius: 0; max-width: 100%; }
+.editions select:focus { outline: none; border-bottom-color: var(--or); }
+.joueur .c .officiel { white-space: nowrap; }
+
+/* Leader */
+.leader { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--encre); display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.leader .nom { font: 700 clamp(40px, 7.6vw, 100px)/.95 var(--serif); letter-spacing: -.045em; }
+.leader .meta { margin-top: 12px; color: var(--doux); }
+.leader .total { font: 700 clamp(52px, 10vw, 132px)/.86 var(--serif); letter-spacing: -.05em; font-variant-numeric: tabular-nums; color: var(--or); text-align: right; }
+.leader .total small { display: block; letter-spacing: .14em; font: 500 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); margin-top: 10px; }
+.leader .compo { grid-column: 1 / -1; }
+
+/* Composition */
+.barre { display: flex; height: 6px; background: var(--trait); }
+.barre i { display: block; height: 100%; }
+.barre .a { background: var(--actions); } .barre .t { background: var(--trophees); } .barre .d { background: var(--distinctions); }
+.legende { display: flex; gap: 20px; margin-top: 10px; font-size: 12px; color: var(--doux); flex-wrap: wrap; }
+.legende span::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; vertical-align: 0; }
+.legende .a::before { background: var(--actions); } .legende .t::before { background: var(--trophees); } .legende .d::before { background: var(--distinctions); }
+
+/* Filtres */
+.filtres { margin-top: 80px; display: flex; gap: 28px; align-items: end; flex-wrap: wrap; border-bottom: 1px solid var(--trait); padding-bottom: 14px; }
+.filtres input, .filtres select { font: 16px var(--sans); color: var(--encre); background: transparent; border: 0; border-bottom: 1px solid var(--encre); padding: 6px 0; border-radius: 0; }
+.filtres input { flex: 1 1 220px; min-width: 0; }
+.filtres input:focus, .filtres select:focus { outline: none; border-bottom-color: var(--or); }
+/* Croix d'effacement des champs de recherche : couleur du texte (noire en clair, claire en sombre) au lieu du bleu du navigateur */
+input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; cursor: pointer; background: var(--encre);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 2l10 10M12 2L2 12' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 2l10 10M12 2L2 12' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.postes { display: flex; gap: 2px; }
+.postes button { font: 500 13px var(--sans); color: var(--doux); background: none; border: 0; padding: 6px 10px; cursor: pointer; border-radius: 99px; }
+.postes button[aria-pressed="true"] { color: var(--fond); background: var(--encre); }
+/* Bouton « Actions seulement » : contour et petit interrupteur, pour qu'on voie tout de suite qu'il s'active */
+.bascule { display: inline-flex; align-items: center; gap: 8px; font: 500 13px var(--sans); color: var(--encre); background: none; border: 1px solid var(--encre); padding: 6px 14px 6px 8px; border-radius: 99px; cursor: pointer; }
+.bascule:hover { background: var(--trait); }
+.bascule:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.bascule .interrupteur { position: relative; width: 26px; height: 14px; border-radius: 99px; background: var(--trait); transition: background .15s; }
+.bascule .interrupteur::after { content: ""; position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--encre); transition: transform .15s; }
+.bascule[aria-pressed="true"] { background: var(--encre); color: var(--fond); }
+.bascule[aria-pressed="true"] .interrupteur { background: var(--or); }
+.bascule[aria-pressed="true"] .interrupteur::after { transform: translateX(12px); background: var(--fond); }
+
+/* Liste */
+.liste { list-style: none; padding: 0; }
+/* Grille du classement : 10 lignes visibles (hauteur calculée au rendu), défilement à l'intérieur */
+#liste { position: relative; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--trait) transparent; border-bottom: 1px solid var(--encre); }
+@keyframes ouvrir { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.ligne[aria-expanded="true"] .detail { animation: ouvrir .3s ease-out; }
+@media (prefers-reduced-motion: reduce) { .ligne[aria-expanded="true"] .detail { animation: none; } }
+.ligne { border-bottom: 1px solid var(--trait); }
+.ligne > button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 48px 1fr 150px 110px; gap: 16px; align-items: center; padding: 18px 0; }
+.ligne > button:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.rang { font: 700 15px/1 var(--serif); font-variant-numeric: tabular-nums; color: var(--doux); }
+.joueur .n { font: 700 23px/1.05 var(--serif); letter-spacing: -.03em; }
+.joueur .c { font-size: 13px; color: var(--doux); margin-top: 2px; }
+.joueur .c b { font-weight: 500; color: var(--encre); }
+.pts { font: 700 22px/1 var(--serif); font-variant-numeric: tabular-nums; letter-spacing: -.03em; text-align: right; }
+.ligne.top .rang { color: var(--or); }
+.ligne[aria-expanded="true"] > button .n { font-style: italic; }
+
+/* Détail */
+.detail { display: none; padding: 4px 0 32px 64px; }
+.ligne[aria-expanded="true"] .detail { display: grid; grid-template-columns: minmax(0, 558fr) minmax(0, 370fr); gap: 40px; } /* en pleine largeur : statistiques 558 px, distinctions, titres et fair-play 370 px ; même proportion sur une fenêtre plus étroite */
+.detail h3 { font: 500 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--or); margin-bottom: 10px; } /* même couleur que les titres de section du barème */
+.detail table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detail td, .detail th { padding: 7px 0; border-bottom: 1px solid var(--trait); text-align: right; font-weight: 400; }
+.detail th { color: var(--doux); font-size: 11px; }
+.detail td:first-child, .detail th:first-child { text-align: left; }
+.detail .coef { color: var(--doux); font-size: 12px; }
+.detail td + td, .detail th + th { padding-left: 14px; }
+.detail td:last-child { white-space: nowrap; }
+.detail .chiffres { display: flex; flex-wrap: wrap; gap: 16px 28px; margin-bottom: 24px; }
+@media (min-width: 721px) { .detail .chiffres { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px 12px; } } /* statistiques alignées en six colonnes égales : six par ligne au plus ; les libellés passent sur plusieurs lignes au besoin */
+.defile-comps { overflow-x: auto; }
+.t-comps th, .t-comps td { white-space: nowrap; }
+.t-comps th + th, .t-comps td + td { padding-left: 12px; }
+.legende-comps { font-size: 11px; color: var(--doux); margin-top: 8px; line-height: 1.6; }
+.legende-comps b { font-weight: 600; color: var(--encre); }
+.detail .chiffres div { font: 700 32px/1 var(--serif); letter-spacing: -.04em; }
+.detail .chiffres small { display: block; font: 500 10px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); margin-top: 6px; }
+.vide { padding: 48px 0; color: var(--doux); }
+
+/* Barème (mode auteur seulement) */
+.bareme { margin-top: 80px; border-top: 1px solid var(--encre); padding-top: 20px; }
+.bareme h2 { font: 700 36px/1 var(--serif); letter-spacing: -.04em; }
+.bareme .grille-b { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 48px; margin-top: 16px; }
+.bareme h3 { font: 500 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); margin: 20px 0 6px; }
+.bareme table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bareme td, .bareme th { padding: 6px 0; border-bottom: 1px solid var(--trait); text-align: right; font-weight: 400; }
+.bareme th { color: var(--doux); font-size: 11px; }
+.bareme td:first-child, .bareme th:first-child { text-align: left; }
+.bareme td + td, .bareme th + th { padding-left: 12px; }
+.bareme td:not(:first-child) { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Pied de page et mode auteur */
+footer { margin-top: 64px; font-size: 12px; color: var(--doux); display: flex; gap: 8px 24px; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+footer button.discret { all: unset; cursor: pointer; color: var(--doux); opacity: .55; }
+footer button.discret:hover, footer button.discret:focus-visible { opacity: 1; text-decoration: underline; }
+#auteur-form { flex-basis: 100%; display: flex; gap: 10px 16px; align-items: center; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--trait); }
+#auteur-form input[type="password"] { font: 16px var(--sans); color: var(--encre); background: transparent; border: 0; border-bottom: 1px solid var(--encre); padding: 6px 0; border-radius: 0; min-width: 0; flex: 1 1 200px; }
+#auteur-form input[type="password"]:focus { outline: none; border-bottom-color: var(--or); }
+#auteur-form .garder { display: flex; gap: 6px; align-items: center; }
+#auteur-form button[type="submit"] { font: 500 13px var(--sans); border-radius: 99px; padding: 7px 16px; cursor: pointer; border: 1px solid var(--encre); background: var(--encre); color: var(--fond); }
+#auteur-form button:disabled { opacity: .4; cursor: default; }
+.bandeau.auteur { border-color: var(--or); }
+.bandeau.auteur button { all: unset; cursor: pointer; text-decoration: underline; color: var(--encre); margin-left: 8px; }
+
+@media (max-width: 1040px) { .nav .liens { gap: 8px; } } /* écrans moyens : liens resserrés pour tenir */
+@media (max-width: 720px) {
+  .page { padding: 0 16px 64px; }
+  .nav { padding: 0 8px 0 16px; } .nav .marque svg { height: 15px; } .nav .liens a { padding: 9px 7px; font-size: 12px; } .nav .liens { gap: 0; }
+  .hero-contenu { padding: 88px 16px 28px; } .hero-tete { text-align: left; }
+  .rubrique { padding-top: 72px; }
+  .principe .cols { grid-template-columns: minmax(0, 1fr); }
+  .leader { grid-template-columns: 1fr; } .leader .total { text-align: left; }
+  .ligne > button { grid-template-columns: 32px 1fr auto; gap: 12px; }
+  .ligne > button .barre-cell { display: none; }
+  .joueur .n { font-size: 19px; } .pts { font-size: 19px; }
+  .detail { padding-left: 0; } .detail .chiffres { gap: 18px; } .detail .chiffres div { font-size: 26px; } .detail .chiffres small { font-size: 9px; letter-spacing: .1em; } .ligne[aria-expanded="true"] .detail { grid-template-columns: 1fr; gap: 28px; }
+}
+/* Vote du public (critère « Classe ») */
+/* Vote du public dans une carte légèrement plus foncée que la page, pour qu'il ressorte en fin de page */
+.vote { margin-top: 104px; background: var(--surface); border-radius: 24px; padding: 40px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 48px; }
+.vote h2 { font: 700 clamp(32px, 5vw, 52px)/.92 var(--serif); letter-spacing: -.04em; grid-column: 1 / -1; }
+@media (max-width: 600px) { .vote { padding: 28px 20px; border-radius: 20px; } }
+.vote .chapo { margin-top: 0; grid-column: 1 / -1; }
+.vote h3 { font: 500 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); margin-bottom: 10px; }
+.vote form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.vote input { font: 16px var(--sans); color: var(--encre); background: transparent; border: 0; border-bottom: 1px solid var(--encre); padding: 6px 0; border-radius: 0; flex: 1 1 220px; min-width: 0; }
+.vote input:focus { outline: none; border-bottom-color: var(--or); }
+/* Champ du vote : rectangle fermé à coins arrondis (8 px), qui affiche le joueur choisi */
+.vote input.champ-vote { display: block; width: 100%; max-width: 420px; font: 700 20px/1.1 var(--serif); letter-spacing: -.02em; border: 1px solid var(--encre); border-radius: 8px; padding: 12px 16px; }
+.vote input.champ-vote::placeholder { font: 16px var(--sans); text-transform: none; letter-spacing: 0; color: var(--doux); }
+.vote input.champ-vote:focus { border-color: var(--or); }
+.vote button { font: 500 13px var(--sans); border-radius: 99px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--encre); background: var(--encre); color: var(--fond); }
+.vote button.google { display: inline-flex; align-items: center; gap: 10px; background: transparent; color: var(--encre); }
+.vote .ou { font-size: 12px; color: var(--doux); margin: 14px 0 6px; }
+.vote .compte-liens { margin-top: 16px; } /* 16 px sous le texte « Modifie ton vote… » */
+.vote button.lien { all: unset; cursor: pointer; font-size: 13px; color: var(--doux); text-decoration: underline; }
+.vote .msg { font-size: 13px; color: var(--doux); margin-top: 10px; min-height: 1.5em; }
+.vote .choix { list-style: none; padding: 0; margin-top: 8px; }
+.vote .choix button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--trait); font-size: 15px; }
+.vote .choix button:hover, .vote .choix button:focus-visible { color: var(--or); }
+.vote .choix small { color: var(--doux); font-size: 12px; }
+.vote ol.tot { list-style: none; padding: 0; }
+/* Compte à rebours jusqu'à la clôture du vote */
+.vote .compte { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px 28px; flex-wrap: wrap; padding: 16px 0; border-top: 1px solid var(--trait); border-bottom: 1px solid var(--trait); }
+.vote .compte .lib { font: 500 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--doux); flex: 1 1 100%; }
+.vote .compte .bloc { font: 700 44px/1 var(--serif); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.vote .compte .bloc small { display: block; margin-top: 6px; font: 500 11px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--doux); }
+.vote .compte .date { font-size: 13px; color: var(--doux); }
+@media (max-width: 600px) { .vote .compte { gap: 8px 18px; } }
+.vote ol.tot li { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--trait); font-size: 15px; }
+.vote ol.tot .r { font: 13px var(--mono); color: var(--doux); }
+.vote ol.tot .v { font: 500 14px var(--mono); }
+@media (max-width: 720px) { .vote { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .nav .liens .long { display: none; } }
+@media (max-width: 380px) { .nav .marque svg { height: 13px; } } /* téléphone : « Vote » tout court, pour que les trois liens tiennent */
+.mode { margin-top: 28px; display: flex; gap: 8px 16px; align-items: flex-start; flex-wrap: wrap; }
+.mode .bascule { display: inline-flex; border: 1px solid var(--encre); border-radius: 99px; padding: 2px; }
+.mode .bascule button { font: 500 13px var(--sans); color: var(--encre); background: none; border: 0; padding: 6px 14px; cursor: pointer; border-radius: 99px; }
+.mode .bascule button[aria-pressed="true"] { color: var(--fond); background: var(--encre); }
+.mode .bascule button:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.pages { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 20px; }
+.pages button { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; color: var(--encre); background: none; border: 1px solid var(--trait); border-radius: 99px; min-width: 40px; padding: 6px 12px; cursor: pointer; }
+.pages button[aria-current="page"] { color: var(--fond); background: var(--encre); border-color: var(--encre); }
+.pages button:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.mode p { font-size: 13px; line-height: 1.45; color: var(--doux); flex: 1 1 260px; max-width: 630px; margin: 0; }
+/* Titres et noms en Archivo très gras ; tous les chiffres en Geist Mono (points, rangs, pages, détail d'un joueur, vote, barème).
+   Placé en dernier pour s'appliquer à toutes les règles plus haut. */
+.hero-tete b, .tete-rubrique h2, .principe h2, .principe h3, .leader .nom, .joueur .n, .bareme h2, .vote h2, .vote input.champ-vote { font-weight: 800; letter-spacing: -.03em; }
+.vote input.champ-vote::placeholder { font-weight: 400; }
+.joueur .n, .leader .nom, .hero-tete b { font-weight: 700; } /* noms des joueurs : une graisse en dessous des titres */
+.leader .total, .pts, .rang, .hero-tete span, .vote .compte .bloc, .detail .chiffres div { font-family: var(--chiffres); font-variant-numeric: tabular-nums; }
+.leader .total { font-weight: 400; font-size: clamp(48px, 9vw, 112px); line-height: .9; letter-spacing: -.04em; }
+.pts { font-weight: 500; font-size: 20px; letter-spacing: -.02em; } .rang { font-weight: 400; font-size: 15px; letter-spacing: 0; }
+.hero-tete span { font-weight: 400; font-size: 14px; letter-spacing: 0; }
+.detail .chiffres div { font-weight: 500; font-size: 24px; letter-spacing: -.03em; } .vote .compte .bloc { font-family: 'League Gothic', var(--sans); font-weight: 400; font-size: 40px; letter-spacing: .02em; }
+.leader .total small, .detail .chiffres small, .vote .compte .bloc small { font-family: var(--sans); }
+
+/* ── Téléphone (≤ 720 px) : bouton menu + tiroir latéral qui arrive de la droite (Figma « Menu ouvert — tiroir (390) », 20 nov.) */
+.btn-menu { all: unset; display: none; box-sizing: border-box; width: 31px; height: 31px; padding: 3.5px; cursor: pointer; color: inherit; }
+.btn-menu svg { display: block; width: 24px; height: 24px; }
+.btn-menu:focus-visible, .tiroir button:focus-visible, .tiroir a:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+.voile { position: fixed; inset: 0; z-index: 40; background: rgba(10, 12, 36, .55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; transition: opacity .45s; }
+.tiroir { position: fixed; inset: 0 0 0 auto; z-index: 41; width: min(334px, 86vw); display: flex; flex-direction: column; padding: 25px 16px calc(32px + env(safe-area-inset-bottom)) 24px;
+  background: var(--fond); color: var(--encre); box-shadow: -12px 0 40px rgba(10, 12, 36, .25); transform: translateX(100%); transition: transform .45s cubic-bezier(.22, 1, .36, 1); overflow-y: auto; overscroll-behavior: contain; }
+.tiroir-tete { display: flex; align-items: center; justify-content: space-between; min-height: 31px; }
+.tiroir-tete span { font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: .6; }
+.tiroir-tete button { all: unset; box-sizing: border-box; width: 31px; height: 31px; padding: 3.5px; cursor: pointer; color: inherit; }
+.tiroir-tete svg { display: block; width: 24px; height: 24px; }
+.tiroir-liens { list-style: none; padding: 0; margin: 56px 0 0; border-top: 1px solid color-mix(in srgb, var(--encre) 12%, transparent); }
+.tiroir-liens li { border-bottom: 1px solid color-mix(in srgb, var(--encre) 12%, transparent); }
+.tiroir-liens a { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0 10px; color: inherit; text-decoration: none; }
+.tiroir-liens .num { font: 400 12px/16px var(--mono); color: var(--or); min-width: 15px; }
+.tiroir-liens .nom { font: 400 56px/52px 'League Gothic', 'Archivo Narrow', sans-serif; text-transform: uppercase; }
+.tiroir-liens a[aria-current="true"] .nom { color: var(--or); }
+.tiroir-liens a[aria-current="true"] .num { color: var(--distinctions); }
+.tiroir-liens a[aria-current="true"]::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--distinctions); margin-top: 20px; flex: none; }
+.tiroir-cta { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 16px 22px; border-radius: 99px;
+  background: var(--or); color: #f3f4f7; font: 500 15px/1.2 var(--sans); text-decoration: none; }
+.tiroir-cta svg { width: 20px; height: 20px; flex: none; }
+.tiroir-pied { margin-top: 28px; display: grid; gap: 6px; }
+.tiroir-pied:first-child, .tiroir-cta[hidden] + .tiroir-pied { margin-top: auto; }
+.tiroir-pied small { font: 500 12px/1.2 var(--sans); opacity: .6; }
+.tiroir-pied p { display: flex; align-items: baseline; gap: 10px; font: 500 20px/1.2 var(--sans); }
+.tiroir-pied p span { font: 400 14px/1 var(--mono); color: var(--or); }
+.tiroir-pied .saison { font: 400 11px/1.3 var(--mono); opacity: .5; }
+.tiroir-liens li { opacity: 0; transform: translateX(24px); transition: opacity .35s, transform .45s cubic-bezier(.22, 1, .36, 1); transition-delay: calc(.08s + var(--i, 0) * 40ms); }
+html.menu-ouvert { overflow: hidden; }
+html.menu-ouvert .voile { opacity: 1; }
+html.menu-ouvert .tiroir { transform: none; }
+html.menu-ouvert .tiroir-liens li { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .voile, .tiroir, .tiroir-liens li { transition: none; } }
+@media (max-width: 720px) { .nav .liens { display: none; } .btn-menu { display: block; } .nav { padding-right: 16px; } }
+@media (min-width: 721px) { .voile, .tiroir { display: none; } }
+</style>
+</head>
+<body>
+<nav class="nav" id="nav" aria-label="Rubriques">
+  <a class="marque" href="#accueil" aria-label="FuoriClass27, haut de page"><svg viewBox="0 0 478 54" aria-hidden="true" focusable="false"><path class="mot" d="M376.702 53.1479C373.988 53.1479 371.471 52.9709 369.15 52.6169C366.829 52.3022 364.804 51.7516 363.073 50.9649C361.382 50.1782 360.044 49.0769 359.061 47.6609C358.117 46.2449 357.645 44.4749 357.645 42.3509C357.645 41.8002 357.665 41.2102 357.704 40.5809C357.783 39.9122 357.901 39.2829 358.058 38.6929H370.389C370.232 39.0076 370.133 39.3222 370.094 39.6369C370.055 39.9122 370.035 40.1876 370.035 40.4629C370.035 41.3676 370.291 42.0756 370.802 42.5869C371.313 43.0589 372.021 43.3932 372.926 43.5899C373.831 43.7472 374.853 43.8259 375.994 43.8259C376.584 43.8259 377.233 43.8062 377.941 43.7669C378.649 43.6882 379.318 43.5506 379.947 43.3539C380.616 43.1572 381.147 42.8622 381.54 42.4689C381.973 42.0362 382.189 41.4659 382.189 40.7579C382.189 40.1286 381.914 39.6172 381.363 39.2239C380.812 38.7912 380.065 38.4372 379.121 38.1619C378.177 37.8472 377.115 37.5719 375.935 37.3359C374.755 37.0606 373.536 36.7656 372.277 36.4509C370.9 36.0969 369.524 35.6839 368.147 35.2119C366.81 34.7006 365.59 34.0516 364.489 33.2649C363.427 32.4782 362.562 31.4949 361.893 30.3149C361.264 29.0956 360.949 27.6206 360.949 25.8899C360.949 23.1759 361.519 20.8946 362.66 19.0459C363.801 17.1579 365.315 15.6436 367.203 14.5029C369.091 13.3229 371.195 12.4772 373.516 11.9659C375.837 11.4152 378.177 11.1399 380.537 11.1399C382.976 11.1399 385.237 11.3562 387.322 11.7889C389.407 12.1822 391.216 12.8116 392.75 13.6769C394.284 14.5422 395.484 15.6436 396.349 16.9809C397.214 18.2789 397.647 19.8326 397.647 21.6419C397.647 21.9566 397.627 22.3106 397.588 22.7039C397.549 23.0972 397.47 23.6479 397.352 24.3559H385.139C385.178 24.0806 385.198 23.8839 385.198 23.7659C385.198 23.6086 385.198 23.4512 385.198 23.2939C385.198 22.3892 384.844 21.6222 384.136 20.9929C383.467 20.3242 382.307 19.9899 380.655 19.9899C379.357 19.9899 378.256 20.1472 377.351 20.4619C376.486 20.7372 375.837 21.1109 375.404 21.5829C374.971 22.0156 374.755 22.4876 374.755 22.9989C374.755 23.5102 374.912 23.9429 375.227 24.2969C375.542 24.6509 375.994 24.9852 376.584 25.2999C377.174 25.5752 377.862 25.8309 378.649 26.0669C379.475 26.2636 380.38 26.4602 381.363 26.6569C382.897 26.9716 384.51 27.3649 386.201 27.8369C387.932 28.2696 389.544 28.8792 391.039 29.6659C392.534 30.4526 393.733 31.4949 394.638 32.7929C395.582 34.0516 396.054 35.6642 396.054 37.6309C396.054 40.1876 395.523 42.4492 394.461 44.4159C393.438 46.3432 392.022 47.9559 390.213 49.2539C388.404 50.5519 386.339 51.5352 384.018 52.2039C381.697 52.8332 379.259 53.1479 376.702 53.1479ZM336.483 53.1479C333.769 53.1479 331.252 52.9709 328.931 52.6169C326.61 52.3022 324.585 51.7516 322.854 50.9649C321.163 50.1782 319.825 49.0769 318.842 47.6609C317.898 46.2449 317.426 44.4749 317.426 42.3509C317.426 41.8002 317.446 41.2102 317.485 40.5809C317.564 39.9122 317.682 39.2829 317.839 38.6929H330.17C330.013 39.0076 329.914 39.3222 329.875 39.6369C329.836 39.9122 329.816 40.1876 329.816 40.4629C329.816 41.3676 330.072 42.0756 330.583 42.5869C331.094 43.0589 331.802 43.3932 332.707 43.5899C333.612 43.7472 334.634 43.8259 335.775 43.8259C336.365 43.8259 337.014 43.8062 337.722 43.7669C338.43 43.6882 339.099 43.5506 339.728 43.3539C340.397 43.1572 340.928 42.8622 341.321 42.4689C341.754 42.0362 341.97 41.4659 341.97 40.7579C341.97 40.1286 341.695 39.6172 341.144 39.2239C340.593 38.7912 339.846 38.4372 338.902 38.1619C337.958 37.8472 336.896 37.5719 335.716 37.3359C334.536 37.0606 333.317 36.7656 332.058 36.4509C330.681 36.0969 329.305 35.6839 327.928 35.2119C326.591 34.7006 325.371 34.0516 324.27 33.2649C323.208 32.4782 322.343 31.4949 321.674 30.3149C321.045 29.0956 320.73 27.6206 320.73 25.8899C320.73 23.1759 321.3 20.8946 322.441 19.0459C323.582 17.1579 325.096 15.6436 326.984 14.5029C328.872 13.3229 330.976 12.4772 333.297 11.9659C335.618 11.4152 337.958 11.1399 340.318 11.1399C342.757 11.1399 345.018 11.3562 347.103 11.7889C349.188 12.1822 350.997 12.8116 352.531 13.6769C354.065 14.5422 355.265 15.6436 356.13 16.9809C356.995 18.2789 357.428 19.8326 357.428 21.6419C357.428 21.9566 357.408 22.3106 357.369 22.7039C357.33 23.0972 357.251 23.6479 357.133 24.3559H344.92C344.959 24.0806 344.979 23.8839 344.979 23.7659C344.979 23.6086 344.979 23.4512 344.979 23.2939C344.979 22.3892 344.625 21.6222 343.917 20.9929C343.248 20.3242 342.088 19.9899 340.436 19.9899C339.138 19.9899 338.037 20.1472 337.132 20.4619C336.267 20.7372 335.618 21.1109 335.185 21.5829C334.752 22.0156 334.536 22.4876 334.536 22.9989C334.536 23.5102 334.693 23.9429 335.008 24.2969C335.323 24.6509 335.775 24.9852 336.365 25.2999C336.955 25.5752 337.643 25.8309 338.43 26.0669C339.256 26.2636 340.161 26.4602 341.144 26.6569C342.678 26.9716 344.291 27.3649 345.982 27.8369C347.713 28.2696 349.325 28.8792 350.82 29.6659C352.315 30.4526 353.514 31.4949 354.419 32.7929C355.363 34.0516 355.835 35.6642 355.835 37.6309C355.835 40.1876 355.304 42.4492 354.242 44.4159C353.219 46.3432 351.803 47.9559 349.994 49.2539C348.185 50.5519 346.12 51.5352 343.799 52.2039C341.478 52.8332 339.04 53.1479 336.483 53.1479ZM270.325 52.4399L292.391 11.8479H307.554L315.106 52.4399H301.713L301.005 46.7169H286.727L284.013 52.4399H270.325ZM291.034 37.6309H299.884L299.117 31.1409C299.038 30.4722 298.96 29.8036 298.881 29.1349C298.802 28.4662 298.704 27.8172 298.586 27.1879C298.507 26.5192 298.429 25.8506 298.35 25.1819C298.271 24.5132 298.193 23.8446 298.114 23.1759H297.878C297.485 24.0412 297.072 24.9262 296.639 25.8309C296.206 26.6962 295.774 27.5812 295.341 28.4859C294.948 29.3512 294.535 30.2362 294.102 31.1409L291.034 37.6309ZM237.109 52.4399L244.307 11.8479H257.346L251.977 42.0559H272.214L270.385 52.4399H237.109ZM213.372 53.1479C207.275 53.1479 202.673 51.8106 199.566 49.1359C196.458 46.4612 194.905 42.5082 194.905 37.2769C194.905 36.3722 194.944 35.4479 195.023 34.5039C195.141 33.5599 195.278 32.5766 195.436 31.5539C196.222 27.0699 197.619 23.3136 199.625 20.2849C201.67 17.2562 204.305 14.9749 207.531 13.4409C210.795 11.9069 214.611 11.1399 218.977 11.1399C222.674 11.1399 225.86 11.6709 228.535 12.7329C231.249 13.7556 233.333 15.2699 234.789 17.2759C236.244 19.2819 236.972 21.7796 236.972 24.7689C236.972 25.3589 236.932 25.9686 236.854 26.5979C236.814 27.2272 236.736 27.8762 236.618 28.5449H224.169C224.247 28.1909 224.287 27.8566 224.287 27.5419C224.326 27.1879 224.346 26.8732 224.346 26.5979C224.346 25.4179 224.11 24.4149 223.638 23.5889C223.205 22.7236 222.556 22.0549 221.691 21.5829C220.825 21.1109 219.724 20.8749 218.387 20.8749C217.01 20.8749 215.791 21.1109 214.729 21.5829C213.667 22.0156 212.762 22.6449 212.015 23.4709C211.267 24.2969 210.638 25.2999 210.127 26.4799C209.655 27.6206 209.301 28.8792 209.065 30.2559C208.868 31.4752 208.691 32.4782 208.534 33.2649C208.416 34.0122 208.317 34.6219 208.239 35.0939C208.199 35.5266 208.16 35.8806 208.121 36.1559C208.121 36.4312 208.121 36.6869 208.121 36.9229C208.121 38.2209 208.337 39.3616 208.77 40.3449C209.202 41.3282 209.871 42.0952 210.776 42.6459C211.72 43.1572 212.9 43.4129 214.316 43.4129C216.046 43.4129 217.521 43.1179 218.741 42.5279C219.96 41.9379 220.943 41.0922 221.691 39.9909C222.477 38.8502 223.008 37.5129 223.284 35.9789H235.32C234.69 39.6762 233.451 42.8032 231.603 45.3599C229.793 47.9166 227.374 49.8636 224.346 51.2009C221.317 52.4989 217.659 53.1479 213.372 53.1479ZM174.128 52.4399L181.326 11.8479H194.365L187.167 52.4399H174.128ZM130.626 52.4399L137.765 11.8479H162.604C165.358 11.8479 167.639 12.3199 169.448 13.2639C171.258 14.2079 172.595 15.4666 173.46 17.0399C174.365 18.5739 174.817 20.3046 174.817 22.2319C174.817 24.7492 174.424 26.9322 173.637 28.7809C172.89 30.6296 171.828 32.2029 170.451 33.5009C169.114 34.7596 167.541 35.8019 165.731 36.6279L170.923 52.4399H156.468L152.692 38.8109H146.084L143.665 52.4399H130.626ZM147.677 29.7839H156.232C157.019 29.7839 157.806 29.5676 158.592 29.1349C159.379 28.6629 160.028 28.0336 160.539 27.2469C161.051 26.4602 161.306 25.5556 161.306 24.5329C161.306 23.5102 161.031 22.6842 160.48 22.0549C159.93 21.4256 159.202 21.1109 158.297 21.1109H149.152L147.677 29.7839ZM104.43 53.1479C100.339 53.1479 96.8386 52.5382 93.928 51.3189C91.0566 50.0996 88.8736 48.2902 87.379 45.8909C85.8843 43.4522 85.137 40.4432 85.137 36.8639C85.137 36.0379 85.1763 35.1922 85.255 34.3269C85.373 33.4222 85.5106 32.4979 85.668 31.5539C86.4546 27.0699 87.8706 23.3136 89.916 20.2849C91.9613 17.2562 94.695 14.9749 98.117 13.4409C101.539 11.9069 105.708 11.1399 110.625 11.1399C114.755 11.1399 118.256 11.7496 121.127 12.9689C124.038 14.1882 126.24 16.0172 127.735 18.4559C129.23 20.8946 129.977 23.9429 129.977 27.6009C129.977 28.3876 129.938 29.2136 129.859 30.0789C129.78 30.9442 129.662 31.8292 129.505 32.7339C128.718 37.2179 127.263 40.9742 125.139 44.0029C123.054 47.0316 120.281 49.3129 116.82 50.8469C113.398 52.3809 109.268 53.1479 104.43 53.1479ZM105.551 43.4129C106.967 43.4129 108.245 43.1966 109.386 42.7639C110.566 42.2919 111.589 41.6429 112.454 40.8169C113.319 39.9909 114.027 39.0076 114.578 37.8669C115.168 36.6869 115.581 35.4086 115.817 34.0319C116.014 32.8912 116.171 31.9669 116.289 31.2589C116.407 30.5116 116.486 29.9216 116.525 29.4889C116.604 29.0562 116.643 28.7219 116.643 28.4859C116.682 28.2499 116.702 28.0336 116.702 27.8369C116.702 26.4209 116.427 25.2016 115.876 24.1789C115.365 23.1169 114.578 22.3106 113.516 21.7599C112.454 21.1699 111.117 20.8749 109.504 20.8749C108.088 20.8749 106.79 21.1109 105.61 21.5829C104.469 22.0156 103.466 22.6449 102.601 23.4709C101.775 24.2969 101.067 25.2999 100.477 26.4799C99.9263 27.6206 99.533 28.8792 99.297 30.2559C99.1003 31.4359 98.943 32.3996 98.825 33.1469C98.707 33.8549 98.6086 34.4252 98.53 34.8579C98.4906 35.2906 98.4513 35.6249 98.412 35.8609C98.412 36.0969 98.412 36.3132 98.412 36.5099C98.412 37.8866 98.6676 39.1059 99.179 40.1679C99.6903 41.1906 100.477 41.9969 101.539 42.5869C102.601 43.1376 103.938 43.4129 105.551 43.4129ZM57.7015 53.1479C52.0768 53.1479 47.6518 52.0269 44.4265 49.7849C41.2012 47.5036 39.5885 44.1012 39.5885 39.5779C39.5885 38.9879 39.6082 38.3782 39.6475 37.7489C39.7262 37.1196 39.8245 36.4706 39.9425 35.8019L44.1905 11.8479H57.2295L52.9815 35.9199C52.9422 36.2346 52.9028 36.5492 52.8635 36.8639C52.8242 37.1786 52.8045 37.4932 52.8045 37.8079C52.8045 39.4992 53.2765 40.8562 54.2205 41.8789C55.2038 42.9016 56.7182 43.4129 58.7635 43.4129C61.1628 43.4129 63.0902 42.7049 64.5455 41.2889C66.0008 39.8729 66.9252 38.0832 67.3185 35.9199L71.5665 11.8479H84.6055L80.2395 36.6869C79.6102 40.3449 78.3122 43.3932 76.3455 45.8319C74.3788 48.2706 71.8222 50.0996 68.6755 51.3189C65.5682 52.5382 61.9102 53.1479 57.7015 53.1479ZM0 52.4399L7.198 11.8479H40.002L38.291 21.5829H18.526L17.287 28.5449H34.279L32.627 37.8669H15.635L13.039 52.4399H0Z"/><path class="an" d="M457.856 53.1299C455.993 53.1299 454.418 52.5664 453.13 51.4394C451.865 50.2894 451.232 48.5299 451.232 46.1609C451.232 44.8039 451.6 43.3779 452.336 41.8829C453.095 40.3879 454.061 38.8354 455.234 37.2254C456.43 35.5924 457.684 33.9019 458.995 32.1539C460.306 30.4059 461.536 28.5889 462.686 26.7029C463.468 25.3689 464.308 23.8969 465.205 22.2869C466.102 20.6769 467.045 18.9634 468.034 17.1464C469.046 15.3064 470.092 13.3859 471.173 11.3849H443.987V16.5599H443.78V0.689941H477.59C477.59 0.689941 477.268 1.27644 476.624 2.44944C476.003 3.62244 475.164 5.17494 474.106 7.10695C473.071 9.03895 471.921 11.1549 470.656 13.4549C469.391 15.7319 468.114 18.0089 466.826 20.2859C465.538 22.5629 464.354 24.6099 463.273 26.4269C462.123 28.3589 461.191 29.8884 460.478 31.0154C459.788 32.1424 459.271 33.0739 458.926 33.8099C458.604 34.5459 458.443 35.3049 458.443 36.0869C458.443 37.1909 458.742 38.1224 459.34 38.8814C459.938 39.6404 460.616 40.3764 461.375 41.0894C462.157 41.7794 462.847 42.5614 463.445 43.4354C464.043 44.3094 464.342 45.4019 464.342 46.7129C464.342 48.4839 463.767 50.0019 462.617 51.2669C461.49 52.5089 459.903 53.1299 457.856 53.1299ZM405.167 52.44V45.54L420.588 33.7065C423.486 31.4985 425.591 28.9225 426.902 25.9785C428.236 23.0115 428.903 19.642 428.903 15.87C428.903 13.248 428.5 10.833 427.695 8.625C426.913 6.394 425.786 4.6 424.314 3.243C422.865 1.886 421.152 1.2075 419.174 1.2075C416.713 1.2075 414.447 1.794 412.377 2.967C410.33 4.14 408.72 5.8075 407.547 7.9695C406.397 10.1085 405.926 12.6385 406.133 15.5595H405.995C405.995 14.6395 406.317 13.777 406.961 12.972C407.605 12.144 408.433 11.477 409.445 10.971C410.457 10.465 411.515 10.212 412.619 10.212C413.654 10.212 414.643 10.465 415.586 10.971C416.529 11.477 417.299 12.1785 417.897 13.0755C418.495 13.9725 418.794 14.996 418.794 16.146C418.794 17.411 418.507 18.515 417.932 19.458C417.357 20.401 416.575 21.137 415.586 21.666C414.62 22.195 413.562 22.4595 412.412 22.4595C411.262 22.4595 410.204 22.172 409.238 21.597C408.272 20.999 407.49 20.1825 406.892 19.1475C406.294 18.1125 405.972 16.9165 405.926 15.5595C405.696 12.4085 406.271 9.6715 407.651 7.3485C409.031 5.0255 411.055 3.22 413.723 1.932C416.391 0.644 419.519 0 423.107 0C426.649 0 429.673 0.5865 432.18 1.7595C434.687 2.9325 436.608 4.5195 437.942 6.5205C439.276 8.4985 439.943 10.695 439.943 13.11C439.943 15.088 439.529 16.859 438.701 18.423C437.896 19.987 436.838 21.4015 435.527 22.6665C434.239 23.9085 432.859 25.0585 431.387 26.1165C429.915 27.1515 428.535 28.129 427.247 29.049L410.618 42.09H441.15V36.915H441.357V52.44H405.167Z"/></svg></a>
+  <div class="liens">
+    <a href="#manifeste">Manifesto</a>
+    <a href="#classement">Classement</a>
+    <a href="#vote" id="nav-vote" hidden>Vote<span class="long"> des tifosi</span></a>
+    <a href="#principe">La méthode</a>
+    <a href="#bareme" id="nav-bareme" hidden>Barème</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <button class="btn-menu" id="btn-menu" type="button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="tiroir"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M10 5H20M4 12H20M4 19H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+</nav>
+<div class="voile" id="voile" hidden></div>
+<aside class="tiroir" id="tiroir" role="dialog" aria-modal="true" aria-label="Menu" hidden>
+  <div class="tiroir-tete"><span>Menu</span><button type="button" id="fermer-menu" aria-label="Fermer le menu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
+  <ol class="tiroir-liens" id="tiroir-liens"></ol>
+  <a class="tiroir-cta" id="tiroir-cta" href="#vote" hidden>Voter pour ton joueur<svg viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><path d="M4 10H16M11 5L16 10L11 15" stroke="#ff70a2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  <div class="tiroir-pied" id="tiroir-pied" hidden></div>
+</aside>
+
+<section class="hero" id="accueil">
+  <video class="hero-video" id="hero-video" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"></video>
+  <div class="hero-voile" aria-hidden="true"></div>
+  <div class="hero-contenu">
+    <h1 aria-label="FuoriClass27"><svg viewBox="0 0 388 105" aria-hidden="true" focusable="false"><path class="mot" d="M215.39 103.848C212.175 103.848 209.192 103.638 206.443 103.219C203.693 102.846 201.293 102.194 199.243 101.262C197.239 100.33 195.654 99.0249 194.489 97.3473C193.371 95.6696 192.812 93.5726 192.812 91.0561C192.812 90.4037 192.835 89.7047 192.882 88.959C192.975 88.1668 193.115 87.4212 193.301 86.7222H207.911C207.724 87.095 207.608 87.4678 207.561 87.8406C207.515 88.1668 207.491 88.493 207.491 88.8192C207.491 89.8911 207.794 90.7299 208.4 91.3357C209.006 91.8949 209.845 92.291 210.916 92.524C211.988 92.7105 213.2 92.8037 214.551 92.8037C215.25 92.8037 216.019 92.7804 216.858 92.7338C217.697 92.6406 218.489 92.4774 219.235 92.2444C220.027 92.0114 220.656 91.6619 221.122 91.1959C221.635 90.6833 221.891 90.0076 221.891 89.1687C221.891 88.4231 221.565 87.8173 220.912 87.3513C220.26 86.8387 219.375 86.4193 218.256 86.0931C217.138 85.7202 215.879 85.394 214.481 85.1144C213.083 84.7882 211.639 84.4387 210.147 84.0659C208.516 83.6465 206.885 83.1572 205.254 82.5979C203.67 81.9921 202.225 81.2232 200.92 80.2912C199.662 79.3591 198.637 78.1941 197.845 76.7961C197.099 75.3514 196.726 73.6039 196.726 71.5534C196.726 68.3379 197.402 65.635 198.753 63.4448C200.105 61.2079 201.899 59.4137 204.136 58.0623C206.373 56.6643 208.866 55.6623 211.615 55.0565C214.365 54.4041 217.138 54.0779 219.934 54.0779C222.823 54.0779 225.503 54.3342 227.973 54.8468C230.442 55.3128 232.586 56.0584 234.404 57.0837C236.221 58.1089 237.642 59.4137 238.668 60.9982C239.693 62.536 240.205 64.3768 240.205 66.5205C240.205 66.8933 240.182 67.3127 240.136 67.7787C240.089 68.2447 239.996 68.8971 239.856 69.736H225.386C225.433 69.4097 225.456 69.1767 225.456 69.0369C225.456 68.8505 225.456 68.6641 225.456 68.4777C225.456 67.4059 225.037 66.4972 224.198 65.7515C223.406 64.9593 222.031 64.5632 220.074 64.5632C218.536 64.5632 217.231 64.7496 216.159 65.1224C215.134 65.4486 214.365 65.8913 213.852 66.4506C213.34 66.9632 213.083 67.5224 213.083 68.1282C213.083 68.734 213.27 69.2466 213.643 69.6661C214.015 70.0855 214.551 70.4816 215.25 70.8544C215.949 71.1806 216.765 71.4835 217.697 71.7631C218.676 71.9961 219.747 72.2291 220.912 72.4621C222.73 72.8349 224.641 73.301 226.644 73.8602C228.695 74.3728 230.606 75.0951 232.376 76.0271C234.147 76.9592 235.569 78.1941 236.64 79.732C237.759 81.2232 238.318 83.1339 238.318 85.4639C238.318 88.493 237.689 91.1726 236.431 93.5027C235.219 95.7861 233.541 97.6968 231.398 99.2347C229.254 100.772 226.807 101.938 224.058 102.73C221.309 103.475 218.419 103.848 215.39 103.848ZM167.739 103.848C164.524 103.848 161.541 103.638 158.792 103.219C156.042 102.846 153.642 102.194 151.592 101.262C149.588 100.33 148.004 99.0249 146.839 97.3473C145.72 95.6696 145.161 93.5726 145.161 91.0561C145.161 90.4037 145.184 89.7047 145.231 88.959C145.324 88.1668 145.464 87.4212 145.65 86.7222H160.26C160.073 87.095 159.957 87.4678 159.91 87.8406C159.864 88.1668 159.84 88.493 159.84 88.8192C159.84 89.8911 160.143 90.7299 160.749 91.3357C161.355 91.8949 162.194 92.291 163.266 92.524C164.337 92.7105 165.549 92.8037 166.9 92.8037C167.599 92.8037 168.368 92.7804 169.207 92.7338C170.046 92.6406 170.838 92.4774 171.584 92.2444C172.376 92.0114 173.005 91.6619 173.471 91.1959C173.984 90.6833 174.24 90.0076 174.24 89.1687C174.24 88.4231 173.914 87.8173 173.262 87.3513C172.609 86.8387 171.724 86.4193 170.605 86.0931C169.487 85.7202 168.229 85.394 166.831 85.1144C165.433 84.7882 163.988 84.4387 162.497 84.0659C160.866 83.6465 159.235 83.1572 157.603 82.5979C156.019 81.9921 154.574 81.2232 153.27 80.2912C152.011 79.3591 150.986 78.1941 150.194 76.7961C149.448 75.3514 149.075 73.6039 149.075 71.5534C149.075 68.3379 149.751 65.635 151.103 63.4448C152.454 61.2079 154.248 59.4137 156.485 58.0623C158.722 56.6643 161.215 55.6623 163.965 55.0565C166.714 54.4041 169.487 54.0779 172.283 54.0779C175.172 54.0779 177.852 54.3342 180.322 54.8468C182.792 55.3128 184.935 56.0584 186.753 57.0837C188.57 58.1089 189.991 59.4137 191.017 60.9982C192.042 62.536 192.555 64.3768 192.555 66.5205C192.555 66.8933 192.531 67.3127 192.485 67.7787C192.438 68.2447 192.345 68.8971 192.205 69.736H177.735C177.782 69.4097 177.805 69.1767 177.805 69.0369C177.805 68.8505 177.805 68.6641 177.805 68.4777C177.805 67.4059 177.386 66.4972 176.547 65.7515C175.755 64.9593 174.38 64.5632 172.423 64.5632C170.885 64.5632 169.58 64.7496 168.508 65.1224C167.483 65.4486 166.714 65.8913 166.201 66.4506C165.689 66.9632 165.432 67.5224 165.432 68.1282C165.432 68.734 165.619 69.2466 165.992 69.6661C166.365 70.0855 166.9 70.4816 167.599 70.8544C168.298 71.1806 169.114 71.4835 170.046 71.7631C171.025 71.9961 172.096 72.2291 173.262 72.4621C175.079 72.8349 176.99 73.301 178.993 73.8602C181.044 74.3728 182.955 75.0951 184.725 76.0271C186.496 76.9592 187.918 78.1941 188.99 79.732C190.108 81.2232 190.667 83.1339 190.667 85.4639C190.667 88.493 190.038 91.1726 188.78 93.5027C187.568 95.7861 185.891 97.6968 183.747 99.2347C181.603 100.772 179.157 101.938 176.407 102.73C173.658 103.475 170.768 103.848 167.739 103.848ZM89.3567 103.009L115.5 54.9167H133.465L142.412 103.009H126.545L125.706 96.2289H108.789L105.574 103.009H89.3567ZM113.892 85.464H124.378L123.469 77.7747C123.376 76.9825 123.283 76.1903 123.189 75.3981C123.096 74.6058 122.98 73.8369 122.84 73.0913C122.747 72.2991 122.653 71.5069 122.56 70.7146C122.467 69.9224 122.374 69.1302 122.281 68.338H122.001C121.535 69.3632 121.046 70.4117 120.533 71.4836C120.02 72.5088 119.508 73.5573 118.995 74.6291C118.529 75.6544 118.04 76.7029 117.527 77.7747L113.892 85.464ZM50.0023 103.009L58.5304 54.9167H73.9787L67.6177 90.7066H91.5941L89.4271 103.009H50.0023ZM21.8794 103.848C14.6561 103.848 9.20378 102.264 5.52227 99.0948C1.84076 95.9259 0 91.2425 0 85.0445C0 83.9727 0.0466014 82.8776 0.139804 81.7591C0.279609 80.6407 0.442713 79.4756 0.629119 78.264C1.56115 72.9515 3.2155 68.501 5.59217 64.9127C8.01544 61.3244 11.1377 58.6215 14.9591 56.8041C18.827 54.9866 23.3473 54.0779 28.5201 54.0779C32.9006 54.0779 36.6753 54.707 39.8442 55.9652C43.0597 57.1769 45.5296 58.971 47.2538 61.3477C48.9781 63.7244 49.8402 66.6836 49.8402 70.2253C49.8402 70.9243 49.7936 71.6466 49.7004 72.3922C49.6538 73.1379 49.5606 73.9068 49.4208 74.699H34.6714C34.7647 74.2796 34.8113 73.8835 34.8113 73.5107C34.8579 73.0913 34.8812 72.7184 34.8812 72.3922C34.8812 70.9942 34.6015 69.8059 34.0423 68.8272C33.5297 67.802 32.7608 67.0098 31.7356 66.4506C30.7103 65.8913 29.4055 65.6117 27.821 65.6117C26.19 65.6117 24.7453 65.8913 23.4871 66.4506C22.2289 66.9632 21.157 67.7088 20.2716 68.6874C19.3862 69.6661 18.6406 70.8544 18.0347 72.2524C17.4755 73.6039 17.0561 75.0951 16.7765 76.7262C16.5435 78.1708 16.3338 79.3591 16.1474 80.2912C16.0076 81.1766 15.8911 81.8989 15.7979 82.4581C15.7513 82.9708 15.7047 83.3902 15.6581 83.7164C15.6581 84.0426 15.6581 84.3455 15.6581 84.6251C15.6581 86.163 15.9144 87.5144 16.427 88.6794C16.9396 89.8445 17.7318 90.7532 18.8037 91.4056C19.9221 92.0114 21.3201 92.3143 22.9978 92.3143C25.0483 92.3143 26.7958 91.9648 28.2405 91.2658C29.6851 90.5668 30.8501 89.5649 31.7356 88.26C32.6676 86.9086 33.2967 85.3241 33.6229 83.5067H47.8829C47.1373 87.8872 45.6694 91.592 43.4791 94.6211C41.3354 97.6502 38.4695 99.957 34.8812 101.541C31.2928 103.079 26.9589 103.848 21.8794 103.848ZM213.585 49.6942L222.113 1.60156H237.562L229.033 49.6942H213.585ZM162.045 49.6942L170.503 1.60156H199.932C203.194 1.60156 205.897 2.16078 208.04 3.27921C210.184 4.39765 211.769 5.88889 212.794 7.75295C213.866 9.5704 214.401 11.6209 214.401 13.9043C214.401 16.8868 213.935 19.4732 213.003 21.6635C212.118 23.8537 210.86 25.7178 209.229 27.2556C207.644 28.7469 205.78 29.9818 203.637 30.9604L209.788 49.6942H192.662L188.188 33.5468H180.359L177.493 49.6942H162.045ZM182.247 22.8518H192.382C193.314 22.8518 194.246 22.5955 195.178 22.0829C196.11 21.5237 196.879 20.778 197.485 19.846C198.091 18.914 198.394 17.8422 198.394 16.6305C198.394 15.4189 198.068 14.4403 197.415 13.6946C196.763 12.949 195.901 12.5762 194.829 12.5762H183.994L182.247 22.8518ZM131.008 50.533C126.161 50.533 122.014 49.8107 118.565 48.366C115.163 46.9214 112.577 44.7777 110.806 41.935C109.035 39.0458 108.15 35.4807 108.15 31.24C108.15 30.2614 108.196 29.2595 108.289 28.2342C108.429 27.1624 108.592 26.0673 108.779 24.9488C109.711 19.6363 111.388 15.1858 113.812 11.5975C116.235 8.00922 119.474 5.30633 123.528 3.48888C127.582 1.67142 132.522 0.762695 138.347 0.762695C143.241 0.762695 147.388 1.48502 150.79 2.92966C154.238 4.37431 156.848 6.54127 158.619 9.43056C160.39 12.3198 161.275 15.9315 161.275 20.2654C161.275 21.1974 161.229 22.176 161.135 23.2013C161.042 24.2265 160.902 25.275 160.716 26.3469C159.784 31.6594 158.06 36.1099 155.543 39.6982C153.073 43.2865 149.788 45.9894 145.687 47.8068C141.633 49.6243 136.74 50.533 131.008 50.533ZM132.336 38.9992C134.013 38.9992 135.528 38.7428 136.879 38.2302C138.277 37.671 139.489 36.9021 140.514 35.9235C141.54 34.9448 142.378 33.7798 143.031 32.4284C143.73 31.0303 144.219 29.5158 144.499 27.8847C144.732 26.5333 144.918 25.4381 145.058 24.5993C145.198 23.7139 145.291 23.0149 145.338 22.5023C145.431 21.9896 145.477 21.5935 145.477 21.3139C145.524 21.0343 145.547 20.778 145.547 20.545C145.547 18.8673 145.221 17.4227 144.569 16.2111C143.963 14.9528 143.031 13.9975 141.773 13.3451C140.514 12.6461 138.93 12.2965 137.019 12.2965C135.342 12.2965 133.804 12.5762 132.406 13.1354C131.054 13.648 129.866 14.3936 128.841 15.3722C127.862 16.3509 127.023 17.5392 126.324 18.9372C125.672 20.2887 125.206 21.7799 124.926 23.411C124.693 24.809 124.507 25.9508 124.367 26.8362C124.227 27.675 124.111 28.3507 124.017 28.8633C123.971 29.376 123.924 29.7721 123.878 30.0517C123.878 30.3313 123.878 30.5876 123.878 30.8206C123.878 32.4517 124.181 33.8963 124.786 35.1545C125.392 36.3662 126.324 37.3215 127.582 38.0205C128.841 38.6729 130.425 38.9992 132.336 38.9992ZM75.6446 50.533C68.9806 50.533 63.738 49.2049 59.9167 46.5486C56.0954 43.8457 54.1847 39.8147 54.1847 34.4556C54.1847 33.7565 54.208 33.0342 54.2546 32.2886C54.3478 31.543 54.4643 30.774 54.6041 29.9818L59.6371 1.60156H75.0854L70.0525 30.1216C70.0059 30.4944 69.9593 30.8672 69.9127 31.2401C69.8661 31.6129 69.8428 31.9857 69.8428 32.3585C69.8428 34.3624 70.402 35.9701 71.5204 37.1817C72.6855 38.3934 74.4796 38.9992 76.9029 38.9992C79.7456 38.9992 82.029 38.1604 83.7533 36.4827C85.4775 34.8051 86.5727 32.6847 87.0387 30.1216L92.0716 1.60156H107.52L102.347 31.0304C101.602 35.3643 100.064 38.9759 97.7337 41.8652C95.4036 44.7545 92.3745 46.9214 88.6464 48.3661C84.9649 49.8107 80.631 50.533 75.6446 50.533ZM7.28113 49.6942L15.8092 1.60156H54.6748L52.6476 13.1354H29.2304L27.7624 21.3839H47.8943L45.937 32.4284H25.8052L22.7295 49.6942H7.28113Z"/><path class="an" d="M349.958 104.72C346.739 104.72 344.019 103.677 341.798 101.592C339.622 99.4614 338.534 96.1974 338.534 91.8001C338.534 89.1254 339.214 86.2921 340.574 83.3001C341.934 80.3081 343.702 77.1801 345.878 73.9161C348.054 70.6068 350.343 67.2068 352.746 63.7161C355.148 60.2254 357.415 56.6214 359.546 52.9041C361.178 49.9574 362.968 46.6254 364.918 42.9081C366.912 39.1454 368.952 35.2468 371.038 31.2121C373.168 27.1321 375.254 23.1201 377.294 19.1761H323.03V29.3761H322.758V1.36011H387.494C387.494 1.36011 386.882 2.53878 385.658 4.89611C384.479 7.20811 382.892 10.2908 380.898 14.1441C378.903 17.9974 376.704 22.2134 374.302 26.7921C371.899 31.3254 369.474 35.8814 367.026 40.4601C364.623 44.9934 362.402 49.0734 360.362 52.7001C358.14 56.6894 356.304 59.8628 354.854 62.2201C353.448 64.5321 352.383 66.4815 351.658 68.0681C350.978 69.6548 350.638 71.3095 350.638 73.0321C350.638 75.3441 351.159 77.2708 352.202 78.8121C353.244 80.3535 354.446 81.8041 355.806 83.1641C357.211 84.5241 358.435 85.9974 359.478 87.5841C360.566 89.1708 361.11 91.1201 361.11 93.4321C361.11 96.5601 360.135 99.2348 358.186 101.456C356.282 103.632 353.539 104.72 349.958 104.72ZM249.44 103.36V91.664L280.856 66.028C286.568 61.404 290.648 56.032 293.096 49.912C295.544 43.7467 296.768 37.1733 296.768 30.192C296.768 25.1147 295.929 20.4453 294.252 16.184C292.62 11.9227 290.331 8.47734 287.384 5.84801C284.437 3.21867 281.015 1.904 277.116 1.904C271.993 1.904 267.369 3.08267 263.244 5.44C259.119 7.79734 255.945 11.1747 253.724 15.572C251.548 19.924 250.777 25.092 251.412 31.076H251.208C251.208 29.444 251.752 27.9253 252.84 26.52C253.928 25.0693 255.311 23.9133 256.988 23.052C258.711 22.1907 260.524 21.76 262.428 21.76C264.196 21.76 265.873 22.1907 267.46 23.052C269.092 23.9133 270.429 25.092 271.472 26.588C272.515 28.084 273.036 29.8293 273.036 31.824C273.036 34.0453 272.537 35.972 271.54 37.604C270.543 39.236 269.205 40.5053 267.528 41.412C265.896 42.3187 264.083 42.772 262.088 42.772C260.093 42.772 258.28 42.2733 256.648 41.276C255.061 40.2787 253.769 38.896 252.772 37.128C251.82 35.36 251.253 33.3427 251.072 31.076C250.437 24.684 251.389 19.176 253.928 14.552C256.467 9.88267 260.275 6.30134 265.352 3.808C270.429 1.26933 276.459 0 283.44 0C290.149 0 295.884 1.17867 300.644 3.536C305.404 5.89334 309.031 9.044 311.524 12.988C314.017 16.8867 315.264 21.1707 315.264 25.84C315.264 29.5573 314.561 32.9347 313.156 35.972C311.751 38.964 309.937 41.684 307.716 44.132C305.495 46.5347 303.092 48.756 300.508 50.796C297.969 52.836 295.567 54.74 293.3 56.508L257.532 86.224H317.78V76.024H318.052V103.36H249.44Z"/></svg></h1>
+    <div class="hero-bas">
+      <p class="chapo">Le meilleur joueur de la saison, désigné par ses matchs et ses titres. Sans jury.</p>
+      <a class="hero-tete" id="hero-tete" href="#classement"><b>Voir le classement</b></a>
+    </div>
+  </div>
+</section>
+
+<section class="manifeste" id="manifeste" aria-labelledby="manifeste-titre">
+  <div class="manifeste-fixe">
+    <p class="manifeste-tag">Comment on juge</p>
+    <h2 class="manifeste-texte" id="manifeste-titre">FuoriClass27 désigne le meilleur joueur de la saison avec ses matchs, ses titres et le vote du public. Pas de jury, pas de favori : seulement ce qui s'est joué sur le terrain.</h2>
+  </div>
+</section>
+
+<div class="suite">
+<div class="page">
+  <section class="rubrique" id="classement" aria-labelledby="classement-titre">
+  <div class="tete-rubrique">
+    <h2 id="classement-titre">Classement</h2>
+    <div class="infos">
+      <span class="sur" id="saison">Saison —</span>
+      <span class="sur" id="maj">Chargement…</span>
+    </div>
+  </div>
+  <div class="editions" id="editions" hidden>
+    <label class="sur" for="edition">Édition</label>
+    <select id="edition"><option value="">Saison en cours</option></select>
+  </div>
+  <div class="mode" id="mode" hidden>
+    <div class="bascule" role="group" aria-label="Type de classement">
+      <button type="button" data-mode="reel" aria-pressed="true">Classement réel</button>
+      <button type="button" data-mode="latent" aria-pressed="false">Classement latent</button>
+    </div>
+    <p id="mode-aide"></p>
+  </div>
+  <div id="bandeaux"></div>
+
+  <section class="leader" id="leader" hidden></section>
+
+  <div class="filtres">
+    <input id="recherche" type="search" placeholder="Chercher un joueur" aria-label="Chercher un joueur" autocomplete="off" data-form-type="other" data-lpignore="true" data-1p-ignore>
+    <div class="postes" id="postes" role="group" aria-label="Poste"></div>
+    <select id="ligue" aria-label="Ligue"><option value="">Toutes les ligues</option></select>
+    <button type="button" class="bascule" id="actions-seules" aria-pressed="false" title="Classer sur les seuls points d'actions"><span class="interrupteur" aria-hidden="true"></span>Actions seulement</button>
+  </div>
+  <ol class="liste" id="liste"></ol>
+  <nav class="pages" id="pages" aria-label="Pages du classement"></nav>
+  </section>
+
+  <section id="vote" class="vote" hidden aria-labelledby="vote-titre">
+    <h2 id="vote-titre">Vote du public</h2>
+    <p class="chapo">Pour le joueur qui a marqué ta saison, qui dégage quelque chose de différent, qui transpire le <i>fuoriclasse</i>. Un vote par personne, modifiable jusqu'à la veille du Ballon d'Or. Tous les joueurs votés se partagent les points du vote au classement, au prorata de leurs votes.</p>
+    <div class="compte" id="vote-compte" hidden></div>
+    <div id="vote-zone"></div>
+    <div><h3>Les plus votés</h3><ol class="tot" id="vote-tot"><li class="vide">Chargement…</li></ol></div>
+  </section>
+
+  <section class="rubrique principe" id="principe" aria-labelledby="principe-titre">
+    <h2 id="principe-titre">Un classement sans jury</h2>
+    <div class="cols">
+      <div><h3>Les actions</h3><p>Chaque but, passe et clean sheet rapporte des points. Leur valeur dépend de l'adversaire, de l'enjeu du match et du résultat.</p></div>
+      <div><h3>Les titres</h3><p>Chaque trophée compte selon le niveau de la compétition et l'impact du joueur : son temps sur le terrain ou sa part dans le jeu de l'équipe. Les distinctions individuelles s'y ajoutent.</p></div>
+      <div><h3>Le vote du public</h3><p>Une part du classement revient aux visiteurs : un vote par personne, pour le joueur qui a marqué la saison.</p></div>
+    </div>
+  </section>
+
+  <section id="bareme" class="bareme" hidden></section>
+  <footer id="contact">
+    <span>Données : API-Football. Ratings : Opta Analyst et World Football Elo Ratings. Mise à jour chaque nuit. <a href="confidentialite.html" style="color:inherit">Confidentialité</a></span>
+    <button class="discret" id="auteur-ouvrir" type="button">Mode auteur</button>
+    <form id="auteur-form" hidden>
+      <label for="auteur-mdp">Mot de passe</label>
+      <input id="auteur-mdp" type="password" autocomplete="current-password" required>
+      <label class="garder"><input id="auteur-garder" type="checkbox"> Rester connecté sur cet appareil</label>
+      <button type="submit">Ouvrir</button>
+      <span id="auteur-msg" role="status"></span>
+    </form>
+  </footer>
+</div>
+</div>
+
+<script>
+const fmt = (n, d = 0) => Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = (id) => document.getElementById(id);
+let D, filtre = { q: '', poste: '', ligue: '' };
+// Liste par pages de 100 joueurs, 500 au plus (5 pages)
+const PAR_PAGE = 100, MAX_AFFICHES = 500;
+let page = 0;
+// Détails ouverts (identifiants des joueurs) : gardés quand la liste est redessinée (mode, filtres, pages), vidés au changement d'édition
+const OUVERTS = new Set();
+// Classement réel : ce qui est acquis — actions, malus, et les titres et distinctions déjà gagnés (finale jouée, compétition finie).
+// Classement latent : en plus, ce que le joueur gagnerait si les compétitions en cours s'arrêtaient maintenant (championnats,
+// leurs distinctions et celle de la saison, provisoires) et le vote du public. Saison en cours seulement ; les éditions passées sont complètes.
+let MODE = 'reel';
+try { MODE = localStorage.getItem('vrai-bo-mode') === 'latent' ? 'latent' : 'reel'; } catch {}
+// Choix réel / latent : saison en cours seulement, tant que le vote du public n'est pas scellé (date de clôture passée).
+// Ensuite, et pour les éditions passées, un seul classement : le classement complet (final).
+let SCELLE = false;
+const choixMode = () => D && !D.archive && !SCELLE;
+const reel = () => MODE === 'reel' && choixMode();
+// « Actions seulement » : classement sur les seuls points d'actions (sans malus, trophées, distinctions ni vote), toutes éditions
+let ACTIONS = false;
+try { ACTIONS = localStorage.getItem('vrai-bo-actions') === '1'; } catch {}
+// Titres et distinctions acquis : ni provisoires (championnat en cours), ni vote du public, ni distinction de la saison
+// (le classement réel n'existe que pendant la saison, avant la clôture du vote)
+const estProvisoire = (t) => !!t.provisoire || /\(provisoire\)/.test(t.nom);
+const acquis = (j, dist) => j.titres.reduce((s, t) => s + (!estProvisoire(t) && t.comp !== 'public' && t.comp !== 'saison' && !!t.distinction === dist ? t.points || 0 : 0), 0);
+const pts = (j) => (ACTIONS ? j.actions || 0 : reel() ? (j.actions || 0) + (j.malus || 0) + acquis(j, false) + acquis(j, true) : j.total);
+const ordre = () => (ACTIONS || reel() ? [...D.joueurs].sort((a, b) => pts(b) - pts(a)) : D.joueurs);
+const AIDE_MODE = {
+  reel: 'Ce qui est acquis : les points d’actions et les malus, plus les titres et distinctions déjà gagnés (coupes et supercoupes dont la finale est jouée, compétitions terminées).',
+  latent: 'Comme si la saison s’arrêtait aujourd’hui : le classement réel, plus les championnats en cours et leurs distinctions d’après le classement du moment, la distinction de la saison d’après les meneurs du moment, et le vote du public.',
+};
+// VISITEURS : saison en cours (version publique) · AUTEUR : saison en cours déchiffrée (mode auteur)
+// EDITION : '' pour la saison en cours, sinon l'année d'une édition passée (saisons/<année>.json)
+let VISITEURS = null, AUTEUR = null, EDITION = '';
+const ARCHIVES = {};
+const v = (n) => (n == null ? '—' : fmt(n));
+const ordinal = (n) => (n === 1 ? '1er' : `${n}e`);
+
+function barre(j, max) {
+  const w = (v) => `${(Math.max(v, 0) / max) * 100}%`;
+  if (ACTIONS) return `<div class="barre" aria-hidden="true"><i class="a" style="width:${w(pts(j))}"></i></div>`;
+  if (reel()) return `<div class="barre" aria-hidden="true"><i class="a" style="width:${w((j.actions || 0) + (j.malus || 0))}"></i><i class="t" style="width:${w(acquis(j, false))}"></i><i class="d" style="width:${w(acquis(j, true))}"></i></div>`;
+  return `<div class="barre" aria-hidden="true"><i class="a" style="width:${w(j.actions)}"></i><i class="t" style="width:${w((j.trophees || 0) + (j.collectif || 0))}"></i><i class="d" style="width:${w((j.distinctions || 0) + (j.classe || 0))}"></i></div>`;
+}
+const nomComp = (k) => D.competitions[k]?.nom || k;
+
+function detail(j) {
+  const rangTxt = (t) => (t.distinction ? '' : t.rang === 2 ? ' <span class="coef">(2e)</span>' : t.rang === 3 && !/demi-finale/.test(t.nom) ? ' <span class="coef">(1/2)</span>' : ''); // « (demi-finale) » déjà dans le nom
+  const coefs = (t) => [String(t.base), t.coefRang != null ? `${fmt(t.coefRang, 2)} ${t.rang}e` : '', t.coefLigue != null && t.coefLigue !== 1 ? `${fmt(t.coefLigue, 1)} ligue` : '', t.coefComp != null && t.coefComp !== 1 ? `${fmt(t.coefComp, 1)} compétition` : '', t.coefTemps != null ? `${fmt(t.coefTemps, 1)} impact (${t.pctTitu != null ? `titularisations ${fmt(t.pctTitu)} %, minutes ${fmt(t.pctMinutes)} %` : `temps de jeu ${fmt(t.tempsDeJeu)} %`}${t.contribution != null ? `, contribution ${fmt(t.contribution)} %` : ''})` : ''].filter(Boolean).join(' × ');
+  // Distinctions individuelles (au-dessus) et titres collectifs, en deux tableaux
+  const table = (liste, entete, vide) => !liste.length ? `<p class="coef">${vide}</p>` : D.auteur
+    ? `<table><tr><th>${entete}</th><th>Coefficients</th><th>Pts</th></tr>${liste.map((t) => `<tr><td>${esc(t.nom)}${rangTxt(t)}</td><td class="coef">${coefs(t)}</td><td class="mono">${fmt(t.points, 1)}</td></tr>`).join('')}</table>`
+    : `<table><tr><th>${entete}</th><th>Pts</th></tr>${liste.map((t) => `<tr><td>${esc(t.nom)}${rangTxt(t)}</td><td class="mono">${fmt(t.points, 1)}</td></tr>`).join('')}</table>`;
+  // Points provisoires (championnats et distinctions en cours, distinction de la saison, vote du public tant qu'il n'est pas scellé) :
+  // pas affichés dans le détail, pour éviter toute confusion
+  const affiches = j.titres.filter((t) => !estProvisoire(t) && !(t.comp === 'public' && !SCELLE && !D.archive));
+  const titres = `<h3>Distinctions individuelles</h3>${table(affiches.filter((t) => t.distinction), 'Distinction', 'Aucune distinction pour l’instant.')}
+      <h3 style="margin-top:20px">Titres collectifs</h3>${table(affiches.filter((t) => !t.distinction), 'Titre', 'Aucun titre pour l’instant.')}`;
+  const comps = Object.entries(j.parComp).sort((a, b) => b[1].points - a[1].points);
+  return `<div>
+      <h3>Statistiques</h3>
+      <div class="chiffres">${chiffresJoueur(j.stats)}</div>
+      <h3>${D.archive && !D.archive.reel ? 'Détail des actions' : 'Valeurs statistiques par compétitions'}</h3>
+      ${tableComps(comps)}
+    </div>
+    <div>${titres}${j.malus ? `<h3 style="margin-top:20px">Fair-play</h3><table><tr><th>Malus</th><th>Pts</th></tr><tr><td>${[[j.fairplay?.fautes, 'faute', 'fautes'], [j.fairplay?.jaunes, 'carton jaune', 'cartons jaunes'], [j.fairplay?.deuxiemesJaunes, 'deuxième jaune', 'deuxièmes jaunes'], [j.fairplay?.rouges, 'carton rouge', 'cartons rouges'], [j.fairplay?.matchsSuspension, 'match de suspension', 'matchs de suspension']].filter(([n]) => n).map(([n, un, plus]) => `${n} ${n > 1 ? plus : un}`).join(' · ')}</td><td class="mono">${fmt(j.malus, 1)}</td></tr></table>` : ''}</div>`;
+}
+
+// Grandes statistiques d'un joueur : mêmes intitulés (au pluriel) et même ordre que les actions du barème, puis les matchs.
+// Ordre du barème du 16 nov. : but, passe décisive, but sur penalty, penalty obtenu, passe clé, ballon gagné, penalty raté, tir au but raté, arrêt, arrêt de penalty, arrêt aux tirs au but, clean sheet.
+// Buts, passes décisives et clean sheets toujours affichés ; les autres seulement si le joueur en a.
+// Le but sur penalty et l'arrêt de penalty sont comptés à part, comme dans le barème.
+const sansPen = (total, pen) => (total == null ? null : Math.max(0, total - (pen || 0)));
+function chiffresJoueur(s) {
+  const lignes = [
+    [sansPen(s.buts, s.pen), 'Buts', true], [s.passes, 'Passes décisives', true], [s.pen, 'Buts sur penalty'], [s.penaltiesProvoques, 'Penalties obtenus'],
+    [s.passesCles, 'Passes clés'], [s.ballonsGagnes, 'Ballons gagnés'], [s.penaltiesRates, 'Penalties ratés'], [s.tabRates, 'Tirs au but ratés'],
+    [sansPen(s.arrets, s.penaltiesArretes), 'Arrêts'], [s.penaltiesArretes, 'Arrêts de penalty'], [s.tabArretes, 'Arrêts aux tirs au but'],
+    [s.cleanSheets, 'Clean sheets', true], [s.matchs, 'Matchs', s.matchs != null],
+  ];
+  return lignes.filter(([n, , toujours]) => toujours || n).map(([n, l]) => `<div>${v(n)}<small>${l}</small></div>`).join('');
+}
+
+// Statistiques par compétition : toutes les colonnes que le joueur remplit (matchs, buts, passes et clean sheets toujours), dans l'ordre du barème, légende dessous
+const COLS_COMP = [
+  ['matchs', 'M', 'matchs', true], [(c) => sansPen(c.buts, c.pen), 'B', 'buts', true], ['passes', 'P', 'passes décisives', true], ['pen', 'BP', 'buts sur penalty'],
+  ['penaltiesProvoques', 'PO', 'penalties obtenus'], ['passesCles', 'PC', 'passes clés'], ['ballonsGagnes', 'BG', 'ballons gagnés'], ['penaltiesRates', 'PR', 'penalties ratés'], ['tabRates', 'TR', 'tirs au but ratés'],
+  [(c) => sansPen(c.arrets, c.penaltiesArretes), 'A', 'arrêts'], ['penaltiesArretes', 'AP', 'arrêts de penalty'], ['cleanSheets', 'CS', 'clean sheets', true],
+];
+const valComp = (c, k) => (typeof k === 'function' ? k(c) : c[k]);
+function tableComps(comps) {
+  const cols = COLS_COMP.filter(([k, , , toujours]) => toujours || comps.some(([, c]) => valComp(c, k)));
+  return `<div class="defile-comps"><table class="t-comps"><tr><th>Compétition</th>${cols.map(([, a, l]) => `<th title="${l}">${a}</th>`).join('')}<th>Pts</th></tr>${comps.map(([k, c]) => `<tr><td>${esc(nomComp(k))}</td>${cols.map(([cle]) => `<td class="mono">${valComp(c, cle) ?? '–'}</td>`).join('')}<td class="mono">${fmt(c.points, 1)}</td></tr>`).join('')}</table></div>
+      <p class="legende-comps">${cols.map(([, a, l]) => `<b>${a}</b> ${l}`).join(' · ')}</p>`;
+}
+
+// Hauteur de la grille : 10 lignes fermées (le reste défile dans la grille)
+const LIGNES_VISIBLES = 10;
+function hauteurListe() {
+  const l = $('liste'), b = l.querySelector('.ligne > button');
+  if (!b) { l.style.maxHeight = ''; return; }
+  l.style.maxHeight = `${(b.offsetHeight + 1) * LIGNES_VISIBLES}px`; // + 1 px : trait sous chaque ligne
+}
+window.addEventListener('resize', () => { if (D) hauteurListe(); });
+// Ouvrir le détail d'un joueur : sa ligne remonte en douceur pour devenir la première ligne affichée de la grille
+function remonter(li) {
+  const l = $('liste'), doux = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Dernières lignes : un peu d'espace sous la grille pour qu'elles puissent quand même monter en haut
+  l.style.paddingBottom = '';
+  const manque = li.offsetTop + l.clientHeight - l.scrollHeight;
+  if (manque > 0) l.style.paddingBottom = `${manque}px`;
+  l.scrollTo({ top: li.offsetTop, behavior: doux ? 'smooth' : 'auto' });
+}
+function rendre(garderPage) {
+  if (!garderPage) page = 0;
+  const q = filtre.q.trim().toLowerCase();
+  const liste = ordre().map((j, i) => ({ ...j, rang: i + 1 })).filter((j) =>
+    (!filtre.poste || j.poste === filtre.poste) && (!filtre.ligue || j.ligue === filtre.ligue) &&
+    (!q || j.nom.toLowerCase().includes(q)));
+  const max = pts(ordre()[0] || {}) || 1;
+  const nbPages = Math.max(1, Math.ceil(Math.min(liste.length, MAX_AFFICHES) / PAR_PAGE));
+  page = Math.min(page, nbPages - 1);
+  $('pages').innerHTML = nbPages > 1 ? Array.from({ length: nbPages }, (_, i) => `<button type="button" data-page="${i}"${i === page ? ' aria-current="page"' : ''} aria-label="Joueurs ${i * PAR_PAGE + 1} à ${Math.min((i + 1) * PAR_PAGE, liste.length, MAX_AFFICHES)}">${i * PAR_PAGE + 1}–${Math.min((i + 1) * PAR_PAGE, liste.length, MAX_AFFICHES)}</button>`).join('') : '';
+  $('liste').innerHTML = liste.length ? liste.slice(page * PAR_PAGE, (page + 1) * PAR_PAGE).map((j) => `
+    <li class="ligne${j.rang <= 3 ? ' top' : ''}" data-id="${esc(String(j.id))}" aria-expanded="${OUVERTS.has(String(j.id))}">
+      <button aria-label="${esc(j.nom)}, ${fmt(pts(j))} points — voir le détail">
+        <span class="rang">${String(j.rang).padStart(2, '0')}</span>
+        <span class="joueur"><div class="n">${esc(j.nom)}</div><div class="c"><b>${esc(D.postes[j.poste] || '')}</b> · ${esc(j.club || '')}${D.archive && j.officiel ? ` · <span class="officiel">BO officiel : ${ordinal(j.officiel)}</span>` : ''}</div></span>
+        <span class="barre-cell">${barre(j, max)}</span>
+        <span class="pts">${fmt(pts(j))}</span>
+      </button>
+      <div class="detail">${detail(j)}</div>
+    </li>`).join('') : '<li class="vide">Aucun joueur ne correspond.</li>';
+  $('liste').style.paddingBottom = '';
+  hauteurListe();
+  if (!garderPage) $('liste').scrollTop = 0;
+}
+
+function bandeaux() {
+  const d = D, b = [];
+  if (AUTEUR) b.push(`<b>Mode auteur</b> · ${d.archive ? 'barème visible (coefficients détaillés : saison en cours seulement)' : 'barème et coefficients visibles'}. <button type="button" id="auteur-quitter">Quitter</button>`);
+  if (d.archive) b.push(d.archive.reel
+    ? `<b>Ballon d'Or ${d.archive.edition} · d'après les vrais matchs.</b> Tous les joueurs de la saison classés avec le barème actuel (vainqueur officiel : ${esc(d.archive.vainqueurOfficiel)} ; les nommés portent leur rang officiel). ${esc(d.archive.note)}`
+    : `<b>Ballon d'Or ${d.archive.edition} · exemple.</b> Les 30 nommés reclassés avec le barème actuel (vainqueur officiel : ${esc(d.archive.vainqueurOfficiel)}). ${esc(d.archive.note)}`);
+  if (d.demo) b.push('<b>Données de démonstration.</b> Clubs et joueurs fictifs, en attendant la première collecte.');
+  if (d.avertissements.liguesSansRating.length) b.push(`<b>${d.avertissements.liguesSansRating.length} championnats sans rating Opta</b> pour l’instant.`);
+  if (d.auteur && d.avertissements.equipesSansRating) b.push(`<b>${fmt(d.avertissements.equipesSansRating)} équipes sans rating Opta</b> pour l’instant.`);
+  if (d.auteur && d.avertissements.selectionsSansElo?.length) b.push(`<b>${d.avertissements.selectionsSansElo.length} sélections sans points Elo</b> : ${esc(d.avertissements.selectionsSansElo.join(', '))}.`);
+  $('bandeaux').innerHTML = b.map((x, i) => `<p class="bandeau${AUTEUR && i === 0 ? ' auteur' : ''}">${x}</p>`).join('');
+  $('auteur-quitter')?.addEventListener('click', quitterAuteur);
+}
+
+// Affiche un classement : saison en cours (visiteurs ou mode auteur) ou édition passée.
+function afficher(d) {
+  D = d;
+  if (d.archive) {
+    $('saison').textContent = `Ballon d'Or ${d.archive.edition} · saison ${d.saison.libelle}`;
+    $('maj').textContent = d.archive.reel ? `${fmt(d.nbMatchs)} matchs · ${fmt(d.joueurs.length)} joueurs` : `Exemple · ${d.joueurs.length} nommés`;
+  } else {
+    $('saison').textContent = `Saison ${d.saison.libelle}`;
+    const date = new Date(d.majLe).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    $('maj').textContent = `Mis à jour le ${date} · ${fmt(d.nbMatchs)} matchs`;
+  }
+
+  bandeaux();
+  $('mode').hidden = !choixMode();
+  $('mode').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.mode === MODE));
+  $('mode-aide').textContent = AIDE_MODE[MODE];
+  $('actions-seules').setAttribute('aria-pressed', ACTIONS);
+
+  const L = ordre()[0];
+  $('leader').hidden = !L;
+  if (L) {
+    $('leader').innerHTML = `
+      <div><span class="sur">${d.archive ? 'Premier selon le barème' : 'En tête'}</span><div class="nom">${esc(L.nom)}</div><div class="meta">${esc(d.postes[L.poste])} · ${esc(L.club || '')}${d.archive && L.officiel ? ` · BO officiel : ${ordinal(L.officiel)}` : ''}</div></div>
+      <div class="total">${fmt(pts(L))}<small>points${ACTIONS ? ' · actions seulement' : reel() ? ' · classement réel' : d.archive ? '' : SCELLE ? ' · classement final' : ' · classement latent'}</small></div>
+      <div class="compo">${barre(L, pts(L))}<div class="legende">${ACTIONS ? `<span class="a">Actions ${fmt(L.actions)}</span>` : reel() ? `<span class="a">Actions ${fmt(L.actions)}</span>${L.malus ? `<span>Malus ${fmt(L.malus)}</span>` : ''}${acquis(L, false) ? `<span class="t">Trophées ${fmt(acquis(L, false))}</span>` : ''}${acquis(L, true) ? `<span class="d">Distinctions ${fmt(acquis(L, true))}</span>` : ''}` : `<span class="a">Actions ${fmt(L.actions)}</span><span class="t">Trophées${L.collectif ? ' et collectif' : ''} ${fmt((L.trophees || 0) + (L.collectif || 0))}</span><span class="d">Distinctions${L.classe ? ' et vote' : ''} ${fmt((L.distinctions || 0) + (L.classe || 0))}</span>`}</div></div>`;
+  } else $('leader').innerHTML = '';
+  // Accueil : le joueur en tête de la saison en cours, lien vers le classement
+  if (!d.archive && L) $('hero-tete').innerHTML = `<small>En tête du classement</small><b>${esc(L.nom)}</b><span>${fmt(pts(L))} points</span>`;
+  // Tiroir (téléphone) : le meneur de la saison en cours, en bas du menu
+  if (!d.archive && L) { $('tiroir-pied').innerHTML = `<small>En tête du classement</small><p>${esc(L.nom)} <span>${fmt(pts(L))} points</span></p><span class="saison">Saison ${esc(d.saison?.libelle || '')} · mis à jour chaque nuit</span>`; $('tiroir-pied').hidden = false; }
+
+  filtre.poste = ''; filtre.ligue = '';
+  $('postes').innerHTML = [['', 'Tous'], ...Object.entries(d.postes)].map(([k, x]) => `<button data-poste="${k}" aria-pressed="${k === ''}">${esc(x)}</button>`).join('');
+  const ligues = [...new Set(d.joueurs.map((j) => j.ligue).filter(Boolean))];
+  $('ligue').innerHTML = '<option value="">Toutes les ligues</option>' + ligues.map((k) => `<option value="${esc(k)}">${esc(nomComp(k))}</option>`).join('');
+  rendre();
+}
+
+// Écouteurs posés une seule fois (le contenu est redessiné à chaque changement d'édition).
+$('mode').addEventListener('click', (e) => {
+  const bt = e.target.closest('button[data-mode]'); if (!bt || bt.dataset.mode === MODE) return;
+  MODE = bt.dataset.mode;
+  try { localStorage.setItem('vrai-bo-mode', MODE); } catch {}
+  const f = { ...filtre };
+  afficher(D);
+  Object.assign(filtre, f);
+  $('postes').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.poste === filtre.poste));
+  $('ligue').value = filtre.ligue;
+  rendre();
+});
+$('actions-seules').addEventListener('click', () => {
+  ACTIONS = !ACTIONS;
+  try { localStorage.setItem('vrai-bo-actions', ACTIONS ? '1' : '0'); } catch {}
+  const f = { ...filtre };
+  afficher(D);
+  Object.assign(filtre, f);
+  $('postes').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x.dataset.poste === filtre.poste));
+  $('ligue').value = filtre.ligue;
+  rendre();
+});
+$('postes').addEventListener('click', (e) => {
+  const bt = e.target.closest('button'); if (!bt) return;
+  filtre.poste = bt.dataset.poste;
+  $('postes').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === bt));
+  rendre();
+});
+$('pages').addEventListener('click', (e) => {
+  const bt = e.target.closest('button[data-page]'); if (!bt) return;
+  page = Number(bt.dataset.page); rendre(true); $('liste').scrollTop = 0;
+  $('liste').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+$('ligue').addEventListener('change', (e) => { filtre.ligue = e.target.value; rendre(); });
+$('recherche').addEventListener('input', (e) => { filtre.q = e.target.value; if (D) rendre(); });
+$('liste').addEventListener('click', (e) => {
+  const li = e.target.closest('.ligne > button')?.parentElement; if (!li) return;
+  const ouvert = li.getAttribute('aria-expanded') !== 'true';
+  li.setAttribute('aria-expanded', ouvert);
+  if (ouvert) { OUVERTS.add(li.dataset.id); remonter(li); } else OUVERTS.delete(li.dataset.id);
+});
+$('edition').addEventListener('change', async (e) => {
+  EDITION = e.target.value;
+  OUVERTS.clear();
+  if (!EDITION) { if (AUTEUR || VISITEURS) afficher(AUTEUR || VISITEURS); return; }
+  try {
+    if (!ARCHIVES[EDITION]) {
+      const r = await fetch(`saisons/${EDITION}.json`, { cache: 'no-cache' });
+      if (!r.ok) throw new Error('absent');
+      ARCHIVES[EDITION] = await r.json();
+    }
+    if (e.target.value === EDITION) afficher(ARCHIVES[EDITION]);
+  } catch (err) { $('maj').textContent = 'Édition indisponible pour l’instant'; }
+});
+
+// ── Mode auteur : le détail (barème, coefficients) est publié chiffré dans auteur.json.
+// La page le déchiffre ici, dans le navigateur ; le mot de passe ne quitte jamais l'appareil.
+const CLE_LOCALE = 'vrai-bo-auteur';
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function cleDepuisMotDePasse(mdp, p) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(mdp), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(p.sel), iterations: p.iterations },
+    base, { name: 'AES-GCM', length: 256 }, true, ['decrypt']);
+}
+async function chargerPaquet() {
+  const r = await fetch('auteur.json', { cache: 'no-cache' });
+  if (!r.ok) throw new Error('absent');
+  return r.json();
+}
+async function dechiffrer(p, cle) {
+  const clair = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p.iv) }, cle, b64(p.donnees));
+  return JSON.parse(new TextDecoder().decode(clair));
+}
+function entrerAuteur(complet) {
+  AUTEUR = { ...complet, auteur: true };
+  if (EDITION) bandeaux(); else afficher(AUTEUR);
+  rendreBareme(complet.bareme);
+  $('nav-bareme').hidden = !complet.bareme;
+  $('auteur-form').hidden = true; $('auteur-ouvrir').hidden = true;
+}
+function quitterAuteur() {
+  try { localStorage.removeItem(CLE_LOCALE); } catch (e) {}
+  AUTEUR = null;
+  if (EDITION) bandeaux(); else afficher(VISITEURS);
+  $('bareme').hidden = true; $('bareme').innerHTML = ''; $('nav-bareme').hidden = true;
+  $('auteur-ouvrir').hidden = false;
+}
+$('auteur-ouvrir').addEventListener('click', () => { const f = $('auteur-form'); f.hidden = !f.hidden; if (!f.hidden) $('auteur-mdp').focus(); });
+$('auteur-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!D) return;
+  const bt = e.target.querySelector('button[type="submit"]'), msg = $('auteur-msg');
+  bt.disabled = true; msg.textContent = 'Déchiffrement…';
+  try {
+    const p = await chargerPaquet();
+    const cle = await cleDepuisMotDePasse($('auteur-mdp').value, p);
+    const complet = await dechiffrer(p, cle);
+    if ($('auteur-garder').checked) {
+      try { localStorage.setItem(CLE_LOCALE, JSON.stringify({ sel: p.sel, iterations: p.iterations, cle: await crypto.subtle.exportKey('jwk', cle) })); } catch (e2) {}
+    }
+    $('auteur-mdp').value = ''; msg.textContent = '';
+    entrerAuteur(complet);
+  } catch (err) {
+    msg.textContent = err.message === 'absent' ? 'Le mode auteur n’est pas encore activé.' : 'Mot de passe incorrect.';
+  } finally { bt.disabled = false; }
+});
+async function auteurMemorise() {
+  let m; try { m = JSON.parse(localStorage.getItem(CLE_LOCALE) || 'null'); } catch (e) { return; }
+  if (!m) return;
+  try {
+    const p = await chargerPaquet();
+    if (p.sel !== m.sel || p.iterations !== m.iterations) throw new Error('changé');
+    const cle = await crypto.subtle.importKey('jwk', m.cle, { name: 'AES-GCM' }, false, ['decrypt']);
+    entrerAuteur(await dechiffrer(p, cle));
+  } catch (e) { try { localStorage.removeItem(CLE_LOCALE); } catch (e2) {} }
+}
+
+// Barème complet, affiché en mode auteur à partir de config/bareme.json (toujours à jour).
+const COMPS_B = {
+  championnat: 'Championnat', coupe: 'Coupe nationale', coupeLigue: 'Coupe de la ligue', supercoupe: 'Supercoupe nationale',
+  ucl: 'Ligue des champions', uel: 'Ligue Europa', uecl: 'Ligue Conférence', usc: "Supercoupe d'Europe",
+  cwc: 'Coupe du monde des clubs', cwcAncienne: 'Coupe du monde des clubs (ancienne formule)', wc: 'Coupe du monde', euro: 'Euro', copa: 'Copa América', can: "Coupe d'Afrique des nations",
+  asie: "Coupe d'Asie des nations", gold: 'Gold Cup', ofcn: "Coupe des nations de l'OFC",
+  lib: 'Copa Libertadores', sud: 'Copa Sudamericana', cafcl: 'CAF Champions League', cafcc: 'Coupe de la Confédération',
+  afccl: 'AFC Champions League Elite', afc2: 'AFC Champions League Two', afc3: 'AFC Challenge League', ccc: 'CONCACAF Champions Cup', ofccl: 'OFC Champions League',
+};
+const LIGUES_B = { England: 'Premier League', Spain: 'La Liga', Germany: 'Bundesliga', Italy: 'Serie A', France: 'Ligue 1', Belgium: 'Jupiler Pro League', Portugal: 'Primeira Liga', Netherlands: 'Eredivisie', Turkey: 'Süper Lig', Switzerland: 'Super League (Suisse)', Greece: 'Super League (Grèce)', Russia: 'Premier League (Russie)', 'Saudi-Arabia': 'Saudi Pro League' };
+function rendreBareme(B) {
+  if (!B) return;
+  const v = (n) => (n == null ? '—' : String(n).replace('.', ','));
+  const tab = (tetes, lignes) => `<table><tr>${tetes.map((t) => `<th>${t}</th>`).join('')}</tr>${lignes.map((l) => `<tr>${l.map((c, i) => `<td>${i ? v(c) : esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
+  const paliers = (t, unite) => tab([unite, 'Coef.'], t.map((p) => [p.min == null ? 'en dessous' : `à partir de ${v(p.min)}`, p.coef]));
+  const enjeu = { finale: 'Finale', demi: 'Demi-finale', quart: 'Quart de finale', huitieme: 'Huitième de finale', autre: 'Autres matchs' };
+  const res = { victoire: 'Victoire', nul: 'Nul (tirs au but compris)', defaite: 'Défaite' };
+  const dist = { meilleurButeur: 'Meilleur buteur', meilleurPasseur: 'Meilleur passeur', meilleurButeurPasseur: 'Meilleur buteur + passeur' };
+  $('bareme').innerHTML = `<h2>Le barème</h2>
+    <div class="grille-b">
+      <div><h3>Actions</h3>${tab(['Action', 'Points'], [['But', B.actions.but], ['Passe décisive', B.actions.passe], ['But sur penalty', B.actions.butPenalty], ['Penalty obtenu', B.actions.penaltyProvoque], ['Passe clé', B.actions.passeCle], ['Ballon gagné', B.actions.ballonGagne], ['Penalty raté', B.actions.penaltyRate], ['Tir au but raté', B.actions.tabRate], ['Arrêt', B.actions.arret], ['Arrêt de penalty', B.actions.arretPenalty], ['Arrêt aux tirs au but', B.actions.arretTAB], ['Clean sheet', B.actions.cleanSheet]])}</div>
+      <div><h3>Poste</h3>${tab(['Poste', 'But', 'Passe', 'But pén.', 'Pén. obt.', 'P. clé', 'Ballon', 'Pén. raté', 'TAB raté', 'Arrêt', 'Arrêt pén.', 'Arrêt TAB', 'CS'], Object.values(B.postes).map((p) => [p.libelle, p.but, p.passe, p.butPenalty ?? p.but, p.penaltyProvoque, p.passeCle, p.ballonGagne, p.penaltyRate ?? 1, p.tabRate ?? 1, p.arret, p.arretPenalty ?? p.arret, p.arretTAB ?? p.arret, p.cleanSheet]))}</div>
+      <div><h3>Poste (malus)</h3>${tab(['Poste', 'Faute', 'Jaune', '2e jaune', 'Rouge', 'Suspension'], Object.values(B.postes).map((p) => [p.libelle, p.faute ?? 1, p.jaune ?? 1, p.deuxiemeJaune ?? 1, p.rouge ?? 1, p.suspension ?? 1]))}</div>
+      <div><h3>Adversaire (club)</h3>${paliers(B.coefAdversaire, 'Rating Opta')}</div>
+      <div><h3>Adversaire (sélection)</h3>${paliers(B.coefAdversaireSelection || B.coefAdversaire, 'Points Elo')}</div>
+      <div><h3>Enjeu</h3>${tab(['Tour', 'Coef.'], Object.entries(B.coefEnjeu).map(([k, c]) => [enjeu[k] || k, c]))}</div>
+      <div><h3>Résultat</h3>${tab(['Résultat', 'Coef.'], Object.entries(B.coefResultat).map(([k, c]) => [res[k] || k, c]))}</div>
+      <div><h3>Championnat</h3>${paliers(B.coefLigue, 'Rating Opta')}</div>
+      <div><h3>Ratings des championnats</h3>${tab(['Championnat', 'Rating'], Object.entries(B.ratingsLigues).map(([k, r]) => [LIGUES_B[k] || k, r]))}</div>
+      <div><h3>Impact</h3>${paliers(B.coefTempsDeJeu, 'Impact (%)')}</div>
+      <div><h3>Distinctions (référence)</h3>${tab(['Distinction', '1er', '2e', '3e'], [...Object.entries(B.distinctions.reference).map(([k, p]) => [dist[k] || k, p, ...['deuxieme', 'troisieme'].map((r) => (B.distinctions[r]?.[k] != null ? `× ${String(B.distinctions[r][k]).replace('.', ',')}` : '—'))]), ...[['meilleurButeurPasseur', 'Meilleur buteur + passeur']].map(([k, l]) => [`${l} — saison globale`, ...[0, 1, 2].map((i) => B.distinctions.saison?.[k]?.[i] ?? '—')])])}</div>
+    </div>
+    <h3>Trophées et coefficient des distinctions</h3>
+    ${tab(['Compétition', 'Vainqueur', '2e / finaliste', '1/2', 'Distinctions'], Object.entries(B.trophees).map(([k, t]) => [COMPS_B[k] || k, t[0], B.coefDeuxieme?.[k] != null ? `× ${String(B.coefDeuxieme[k]).replace('.', ',')}` : t[1], B.coefDemi?.[k] != null ? `× ${String(B.coefDemi[k]).replace('.', ',')}` : t[2], k === 'championnat' ? 'coef. championnat' : B.distinctions.coefs[k]]).map((l) => (l[4] === 'coef. championnat' ? [...l.slice(0, 4), null] : l)))}`;
+  $('bareme').hidden = false;
+}
+
+// ── Vote du public : connexion par lien e-mail (Supabase), un vote par compte et par saison, modifiable jusqu'à la clôture.
+// vote.json (adresse et clé publique du projet) n'existe que si le vote est configuré ; sinon la section reste cachée.
+const VOTE = { sb: null, cfg: null, joueurs: [], session: null, monVote: null, ouvert: true, cloture: null };
+const sansAccent = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function chargerScript(src) { return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); }); }
+async function initVote() {
+  try {
+    const r = await fetch('vote.json', { cache: 'no-cache' });
+    if (!r.ok) return;
+    VOTE.cfg = await r.json();
+    await chargerScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js');
+    VOTE.sb = window.supabase.createClient(VOTE.cfg.url, VOTE.cfg.cle);
+    $('vote').hidden = false; $('nav-vote').hidden = false;
+    fetch('joueurs.json', { cache: 'no-cache' }).then((x) => x.json()).then((l) => { VOTE.joueurs = l.map(([id, nom, club]) => ({ id, nom, club, cle: sansAccent(nom) })); }).catch(() => {});
+    const { data: reg } = await VOTE.sb.from('reglages').select('cloture').eq('saison', VOTE.cfg.saison).maybeSingle();
+    VOTE.cloture = reg?.cloture ? new Date(reg.cloture) : null;
+    VOTE.ouvert = !!reg && (!VOTE.cloture || Date.now() < VOTE.cloture.getTime());
+    // Vote scellé : plus de choix réel / latent pour cette saison, classement final seulement
+    if (VOTE.cloture && Date.now() >= VOTE.cloture.getTime()) { SCELLE = true; if (!EDITION && D) afficher(D); }
+    compteur();
+    VOTE.session = (await VOTE.sb.auth.getSession()).data.session;
+    VOTE.sb.auth.onAuthStateChange((_e, s) => { VOTE.session = s; chargerMonVote(); });
+    await chargerMonVote();
+    chargerTotaux();
+  } catch (e) { console.warn('Vote indisponible', e); }
+}
+// Compte à rebours jusqu'à la clôture (date « cloture » de la table reglages). À zéro : vote clos et classement final.
+let minuteur = null;
+function compteur() {
+  const el = $('vote-compte');
+  clearInterval(minuteur);
+  if (!VOTE.ouvert) { el.hidden = true; return; }
+  el.hidden = false;
+  if (!VOTE.cloture) { el.innerHTML = '<span class="lib">Clôture du vote</span><span class="date">La veille de la cérémonie du Ballon d’Or — date pas encore fixée.</span>'; return; }
+  const date = VOTE.cloture.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const tic = () => {
+    const reste = Math.max(0, VOTE.cloture.getTime() - Date.now());
+    if (!reste) {
+      clearInterval(minuteur); VOTE.ouvert = false; SCELLE = true; el.hidden = true;
+      rendreVote(); if (!EDITION && D) afficher(D); return;
+    }
+    const s = Math.floor(reste / 1000), n = [Math.floor(s / 86400), Math.floor(s / 3600) % 24, Math.floor(s / 60) % 60, s % 60];
+    const b = (v, un, plus, deux = true) => `<span class="bloc">${deux ? String(v).padStart(2, '0') : v}<small>${v > 1 ? plus : un}</small></span>`;
+    el.innerHTML = `<span class="lib">Clôture du vote dans</span>${b(n[0], 'jour', 'jours', false)}${b(n[1], 'heure', 'heures')}${b(n[2], 'minute', 'minutes')}${b(n[3], 'seconde', 'secondes')}<span class="date">Fin : ${esc(date)}</span>`;
+    el.setAttribute('aria-label', `Clôture du vote dans ${n[0]} jours, ${n[1]} heures et ${n[2]} minutes`);
+  };
+  tic(); minuteur = setInterval(tic, 1000);
+}
+async function chargerMonVote() {
+  VOTE.monVote = null;
+  if (VOTE.session) {
+    const { data } = await VOTE.sb.from('votes').select('joueur_id,joueur_nom').eq('saison', VOTE.cfg.saison).maybeSingle();
+    VOTE.monVote = data;
+  }
+  rendreVote();
+}
+async function chargerTotaux() {
+  const { data, error } = await VOTE.sb.from('totaux').select('joueur_nom,votes').eq('saison', VOTE.cfg.saison).order('votes', { ascending: false }).limit(10);
+  $('vote-tot').innerHTML = error ? '<li class="vide">Totaux indisponibles.</li>' : data.length
+    ? data.map((t, i) => `<li><span class="r">${String(i + 1).padStart(2, '0')}</span><span>${esc(t.joueur_nom)}</span><span class="v">${fmt(t.votes)}</span></li>`).join('')
+    : '<li class="vide">Aucun vote pour l’instant. Sois le premier !</li>';
+}
+function rendreVote(msg = '') {
+  const z = $('vote-zone');
+  const fin = VOTE.cloture ? ` Clôture : ${VOTE.cloture.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}.` : '';
+  if (!VOTE.ouvert) { z.innerHTML = `<h3>Vote clos</h3><p class="msg">Le vote de la saison ${esc(VOTE.cfg.saison)} est terminé.${VOTE.monVote ? ` Ton vote : <b>${esc(VOTE.monVote.joueur_nom)}</b>.` : ''}</p>`; return; }
+  if (!VOTE.session) {
+    z.innerHTML = `<h3>Voter</h3>
+      <button class="google" id="vote-google" type="button"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.2 44 33 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continuer avec Google</button>
+      <p class="ou">ou recevoir un lien par e-mail</p>
+      <form id="vote-mail"><input id="vote-email" type="email" required autocomplete="email" placeholder="Ton adresse e-mail" aria-label="Ton adresse e-mail"><button type="submit">Recevoir le lien</button></form>
+      <p class="msg" id="vote-msg" role="status">${msg || `Un vote par compte, sans mot de passe.${fin} <a href="confidentialite.html" style="color:inherit">Données et confidentialité</a>`}</p>`;
+    $('vote-google').addEventListener('click', async () => {
+      const { error } = await VOTE.sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+      if (error) $('vote-msg').textContent = `Connexion Google impossible : ${error.message}`;
+    });
+    $('vote-mail').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = $('vote-email').value.trim();
+      $('vote-msg').textContent = 'Envoi…';
+      const { error } = await VOTE.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+      $('vote-msg').textContent = error ? `Envoi impossible : ${error.message}` : `Lien envoyé à ${email}. Ouvre-le sur cet appareil pour voter.`;
+    });
+    return;
+  }
+  z.innerHTML = `<h3>${VOTE.monVote ? 'Ton vote' : 'Voter'}</h3>
+    <input id="vote-q" class="champ-vote" type="search" value="${VOTE.monVote ? esc(VOTE.monVote.joueur_nom) : ''}" placeholder="Chercher un joueur" aria-label="${VOTE.monVote ? `Ton vote : ${esc(VOTE.monVote.joueur_nom)}. Écris un autre nom pour changer.` : 'Chercher un joueur'}" autocomplete="off" data-form-type="other" data-lpignore="true" data-1p-ignore>
+    <ul class="choix" id="vote-choix"></ul>
+    <p class="msg" id="vote-msg" role="status">${msg || (() => { const j = VOTE.cloture ? `jusqu’au ${VOTE.cloture.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'jusqu’à la clôture'; return VOTE.monVote ? `Modifie ton vote ${j}.` : `Tu peux voter ${j}.`; })()}</p>
+    <p class="compte-liens"><button class="lien" id="vote-sortir" type="button">Se déconnecter</button> · <button class="lien" id="vote-suppr" type="button">Supprimer mon compte et mon vote</button></p>`;
+  // Le champ montre le joueur choisi : au clic, le nom est sélectionné (on tape par-dessus pour chercher un autre joueur) ;
+  // laissé vide, il reprend le nom du vote.
+  $('vote-q').addEventListener('focus', (e) => e.target.select());
+  $('vote-q').addEventListener('blur', (e) => setTimeout(() => {
+    if (VOTE.monVote && !e.target.value.trim()) { e.target.value = VOTE.monVote.joueur_nom; $('vote-choix').innerHTML = ''; }
+  }, 200));
+  $('vote-q').addEventListener('input', (e) => {
+    const q = VOTE.monVote && e.target.value === VOTE.monVote.joueur_nom ? '' : sansAccent(e.target.value.trim());
+    const l = q.length < 2 ? [] : VOTE.joueurs.filter((j) => q.split(/\s+/).every((m) => j.cle.includes(m))).slice(0, 8);
+    $('vote-choix').innerHTML = l.map((j) => `<li><button type="button" data-id="${j.id}">${esc(j.nom)} <small>${esc(j.club)}</small></button></li>`).join('')
+      || (q.length >= 2 ? '<li class="msg">Aucun joueur trouvé.</li>' : '');
+  });
+  $('vote-choix').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-id]'); if (!b) return;
+    const j = VOTE.joueurs.find((x) => x.id === Number(b.dataset.id)); if (!j) return;
+    $('vote-msg').textContent = 'Enregistrement…';
+    const { error } = await VOTE.sb.from('votes').upsert({ user_id: VOTE.session.user.id, saison: VOTE.cfg.saison, joueur_id: j.id, joueur_nom: j.nom, maj: new Date().toISOString() }, { onConflict: 'user_id,saison' });
+    if (error) { $('vote-msg').textContent = `Vote non enregistré : ${error.message}`; return; }
+    VOTE.monVote = { joueur_id: j.id, joueur_nom: j.nom };
+    rendreVote(`Merci ! Ton vote pour ${j.nom} est enregistré.`);
+    chargerTotaux();
+  });
+  $('vote-sortir').addEventListener('click', () => VOTE.sb.auth.signOut());
+  // Suppression en deux temps (pas de fenêtre de confirmation) : un premier clic arme le bouton, le second efface.
+  $('vote-suppr').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.arme) { b.dataset.arme = '1'; b.textContent = 'Confirmer : tout effacer définitivement'; $('vote-msg').textContent = 'Ton compte et ton vote seront effacés. Clique encore pour confirmer.'; return; }
+    $('vote-msg').textContent = 'Suppression…';
+    const { error } = await VOTE.sb.rpc('supprimer_mon_compte');
+    if (error) { $('vote-msg').textContent = `Suppression impossible : ${error.message}`; return; }
+    await VOTE.sb.auth.signOut();
+    VOTE.session = null; VOTE.monVote = null;
+    rendreVote('Ton compte et ton vote ont été effacés.');
+    chargerTotaux();
+  });
+}
+initVote();
+
+// ── Barre de navigation : pleine une fois l'accueil passé, rubrique en cours entourée
+const ANIME = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+function defile() {
+  const h = $('accueil').offsetHeight, y = window.scrollY;
+  $('nav').classList.toggle('flou', y > h - 64);
+  $('nav').classList.toggle('solide', document.querySelector('.suite').getBoundingClientRect().top <= 32); // texte foncé seulement sur le fond clair, après le manifeste
+  if (ANIME && y <= h) $('accueil').style.setProperty('--p', (y / h).toFixed(3)); // avancement du recouvrement de l'accueil, de 0 à 1
+}
+window.addEventListener('scroll', defile, { passive: true });
+window.addEventListener('resize', defile);
+defile();
+// Capsule : la rubrique en cours est celle dont le haut a passé la ligne de lecture (30 % de l'écran sous la barre), dans l'ordre de la page ;
+// tout en bas, c'est la dernière. Recalculé à chaque défilement, au redimensionnement et quand la page change de hauteur
+// (classement, vote ou barème qui s'affichent). Les rubriques masquées (hauteur nulle) sont ignorées.
+const LIENS = [...$('nav').querySelectorAll('.liens a')];
+// Liens découpés lettre par lettre (chaque lettre doublée) pour l'effet de survol ; le nom lu par les lecteurs d'écran reste le mot entier
+function decouper(source, cible) {
+  for (const n of [...source.childNodes]) {
+    if (n.nodeType === 3) {
+      for (const c of n.textContent) {
+        if (c === ' ') { cible.append(' '); continue; }
+        const l = document.createElement('span'); l.className = 'lettre'; l.setAttribute('aria-hidden', 'true');
+        l.innerHTML = '<span></span><span></span>'; l.firstChild.textContent = c; l.lastChild.textContent = c;
+        cible.append(l);
+      }
+    } else if (n.nodeType === 1) { const e = n.cloneNode(false); decouper(n, e); cible.append(e); }
+  }
+}
+LIENS.forEach((a) => { a.setAttribute('aria-label', a.textContent.trim()); const f = document.createDocumentFragment(); decouper(a, f); a.replaceChildren(f); });
+const RUBRIQUES = ['manifeste', 'classement', 'vote', 'principe', 'bareme', 'contact'].map($);
+let capsule = null, rafCapsule = 0;
+function majCapsule() {
+  rafCapsule = 0;
+  const ligne = 56 + (innerHeight - 56) * 0.3;
+  const vues = RUBRIQUES.filter((r) => r.getBoundingClientRect().height > 0);
+  let cur = null;
+  for (const r of vues) if (r.getBoundingClientRect().top <= ligne) cur = r;
+  if (vues.length && innerHeight + scrollY >= document.documentElement.scrollHeight - 2) cur = vues[vues.length - 1];
+  const id = cur ? cur.id : null;
+  if (id === capsule) return;
+  capsule = id;
+  let actif = null;
+  LIENS.forEach((a) => { const on = a.hash === `#${id}` && !a.hidden; if (on) { a.setAttribute('aria-current', 'true'); actif = a; } else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('#tiroir-liens a').forEach((a) => { if (a.hash === `#${id}`) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); });
+  const boite = actif && actif.parentElement; // téléphone : la capsule reste visible quand les liens débordent
+  if (boite && boite.scrollWidth > boite.clientWidth) boite.scrollTo({ left: actif.offsetLeft - (boite.clientWidth - actif.offsetWidth) / 2, behavior: ANIME ? 'smooth' : 'auto' });
+}
+const planifierCapsule = () => { if (!rafCapsule) rafCapsule = requestAnimationFrame(majCapsule); };
+window.addEventListener('scroll', planifierCapsule, { passive: true });
+window.addEventListener('resize', planifierCapsule);
+new ResizeObserver(planifierCapsule).observe(document.body);
+majCapsule();
+
+// ── Menu du téléphone : tiroir latéral. Mêmes rubriques que la barre (dans le même ordre, seulement celles qui sont affichées),
+// numérotées ; la rubrique en cours suit la capsule. Fermeture : croix, voile, Échap, choix d'une rubrique. Page bloquée pendant l'ouverture.
+const BTN_MENU = $('btn-menu'), TIROIR = $('tiroir'), VOILE = $('voile');
+let menuOuvert = false, minuterieMenu = 0;
+function remplirTiroir() {
+  const vus = LIENS.filter((a) => !a.hidden);
+  $('tiroir-liens').innerHTML = vus.map((a, i) => `<li style="--i:${i}"><a href="${a.hash}"${a.hash === `#${capsule}` ? ' aria-current="true"' : ''}><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="nom">${esc(a.getAttribute('aria-label'))}</span></a></li>`).join('');
+  $('tiroir-cta').hidden = $('nav-vote').hidden;
+}
+function ouvrirMenu() {
+  if (menuOuvert) return;
+  menuOuvert = true; clearTimeout(minuterieMenu);
+  remplirTiroir();
+  TIROIR.hidden = false; VOILE.hidden = false;
+  TIROIR.getBoundingClientRect(); // départ de l'animation depuis la position fermée
+  document.documentElement.classList.add('menu-ouvert');
+  BTN_MENU.setAttribute('aria-expanded', 'true');
+  $('fermer-menu').focus({ preventScroll: true });
+}
+function fermerMenu(rendreFocus = true) {
+  if (!menuOuvert) return;
+  menuOuvert = false;
+  document.documentElement.classList.remove('menu-ouvert');
+  BTN_MENU.setAttribute('aria-expanded', 'false');
+  minuterieMenu = setTimeout(() => { TIROIR.hidden = true; VOILE.hidden = true; }, ANIME ? 450 : 0);
+  if (rendreFocus) BTN_MENU.focus({ preventScroll: true });
+}
+BTN_MENU.addEventListener('click', ouvrirMenu);
+$('fermer-menu').addEventListener('click', () => fermerMenu());
+VOILE.addEventListener('click', () => fermerMenu());
+TIROIR.addEventListener('click', (e) => { if (e.target.closest('a[href^="#"]')) fermerMenu(false); }); // le lien fait défiler vers la rubrique
+document.addEventListener('keydown', (e) => {
+  if (!menuOuvert) return;
+  if (e.key === 'Escape') { e.preventDefault(); fermerMenu(); }
+  if (e.key === 'Tab') { // le focus reste dans le tiroir
+    const f = [...TIROIR.querySelectorAll('a[href]:not([hidden]), button')].filter((n) => !n.closest('[hidden]'));
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  }
+});
+matchMedia('(min-width: 721px)').addEventListener('change', (m) => { if (m.matches) fermerMenu(false); });
+
+// ── Vidéo d'accueil (facultative) : nom du fichier déposé dans public/ (ex. 'hero.mp4'), vide tant qu'il n'y en a pas.
+// Muette, en boucle. Si le visiteur a demandé moins d'animations ou d'économiser ses données, seule l'image fixe AFFICHE_ACCUEIL
+// (ex. 'hero.jpg', facultative elle aussi) est montrée ; elle sert aussi d'attente pendant le chargement de la vidéo.
+const VIDEO_ACCUEIL = '';
+const AFFICHE_ACCUEIL = '';
+if (VIDEO_ACCUEIL || AFFICHE_ACCUEIL) {
+  const vid = $('hero-video');
+  if (AFFICHE_ACCUEIL) { vid.poster = AFFICHE_ACCUEIL; vid.classList.add('prete'); }
+  if (VIDEO_ACCUEIL && ANIME && !navigator.connection?.saveData) {
+    vid.addEventListener('canplay', () => { vid.classList.add('prete'); vid.play().catch(() => {}); }, { once: true });
+    vid.preload = 'auto'; // la balise est en preload="none" pour ne rien charger sans vidéo
+    vid.src = VIDEO_ACCUEIL;
+  }
+}
+
+fetch('classement.json', { cache: 'no-cache' })
+  .then((r) => r.json()).then((d) => {
+    VISITEURS = d;
+    $('edition').options[0].textContent = `Saison en cours · ${d.saison.libelle}`;
+    if (!EDITION) afficher(d);
+    auteurMemorise();
+  })
+  .catch(() => { if (!EDITION) { $('maj').textContent = 'Classement indisponible'; $('liste').innerHTML = '<li class="vide">Le classement n’a pas encore été calculé.</li>'; } });
+// Éditions passées : la liste vient de saisons/index.json (absente : le sélecteur reste caché).
+fetch('saisons/index.json', { cache: 'no-cache' })
+  .then((r) => (r.ok ? r.json() : []))
+  .then((liste) => {
+    if (!liste.length) return;
+    $('edition').insertAdjacentHTML('beforeend', liste.map((e) => `<option value="${e.edition}">Ballon d'Or ${e.edition} · saison ${esc(e.saison)}</option>`).join(''));
+    $('editions').hidden = false;
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>
